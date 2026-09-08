@@ -1084,11 +1084,8 @@ function actionsFor(
   const distance =
     wrappedDistance(ship.position, entity.position, state.width, state.height) /
     SCALE;
-  const autopilotAction = {
-    id: 'autopilot',
-    label: 'Fly here',
-    icon: 'route' as const,
-  };
+  // Moving is a tap on the map, not a button, so no travel action appears here.
+  // The contacts list keeps a per-contact "Fly here" as the keyboard route.
   if ('material' in entity)
     return [
       {
@@ -1097,7 +1094,6 @@ function actionsFor(
         icon: 'mining' as const,
         ...blocked(miningBlockedReason(ship, entity, distance)),
       },
-      autopilotAction,
     ];
   if ('market' in entity) {
     const result: ContextAction[] = [
@@ -1107,7 +1103,6 @@ function actionsFor(
         icon: 'planet',
         ...blocked(dockBlockedReason(state, ship, entity, distance)),
       },
-      autopilotAction,
     ];
     if (entity.owner !== 'player')
       result.push({
@@ -1121,7 +1116,6 @@ function actionsFor(
   }
   if ('faction' in entity)
     return [
-      { ...autopilotAction, label: 'Pursue' },
       {
         id: 'bomb',
         label: 'Bomb',
@@ -1135,7 +1129,7 @@ function actionsFor(
         icon: 'weapon' as const,
       },
     ];
-  return [autopilotAction];
+  return [];
 }
 
 /**

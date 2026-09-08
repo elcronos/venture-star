@@ -376,11 +376,13 @@ test('UX-T-077: a mined deposit reports how much yield is left, and actions appe
     await page.locator('.vs-target').getByRole('button').count(),
   ).toBe(0);
   const contextBar = page.getByRole('navigation', { name: 'Context actions' });
-  for (const label of ['Mine', 'Fly here']) {
-    expect(
-      await contextBar.getByRole('button', { name: label, exact: true }).count(),
-    ).toBe(1);
-  }
+  expect(
+    await contextBar.getByRole('button', { name: 'Mine', exact: true }).count(),
+  ).toBe(1);
+  // Moving is a tap on the map, so the context bar carries no travel button.
+  expect(
+    await contextBar.getByRole('button', { name: 'Fly here' }).count(),
+  ).toBe(0);
 
   // The bar tracks depletion as the deposit is mined out.
   await page.evaluate((id) => {

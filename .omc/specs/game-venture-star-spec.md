@@ -801,7 +801,7 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Inputs:** tap/click destination in local space, entity interaction, or strategic sector; current intel; fuel forecast; user confirmation if reserve forecast is negative.
 
-**Gesture contract:** movement is expressed by tapping, not by naming a mode. One tap on empty space commits a move to that point. One tap on a planet, deposit or ship both selects it and starts the approach — never two taps to go somewhere. One tap on your own ship is the stop gesture and is equivalent to `Full stop`. The player-facing vocabulary is "Fly here" and the phase readout, not "autopilot".
+**Gesture contract:** movement is expressed by tapping, not by naming a mode. One tap on empty space commits a move to that point. One tap on a planet, deposit or ship both selects it and starts the approach — never two taps to go somewhere. One tap on your own ship is the stop gesture and is equivalent to `Full stop`. The player-facing vocabulary is the phase readout, not "autopilot". The context bar carries no travel button at all, because a button that duplicates the primary gesture reads as a second, different thing; the contacts list keeps a per-contact `Fly here` as the keyboard and assistive-technology route.
 
 **Formula:** desired cruise is `180 wu/s`; braking distance is `dBrake=v²/(2×150)+24 wu`; arrival tolerances are `24 wu` for a point and `84 wu` for an interaction target.
 
