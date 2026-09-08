@@ -158,7 +158,7 @@ function contacts(flight: FlightState, dispatch: UiDispatch): HTMLElement {
                 { className: 'vs-button--compact' },
               ),
               button(
-                'Autopilot',
+                'Fly here',
                 () =>
                   dispatch({
                     type: 'autopilot-contact',

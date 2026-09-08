@@ -221,11 +221,11 @@ function settings(state: UiState, dispatch: UiDispatch): HTMLElement {
 function help(dispatch: UiDispatch): HTMLElement {
   const controls: Array<[string, string]> = [
     ['W / ↑', 'Forward thrust'],
-    ['S / ↓', 'Brake — also cancels autopilot'],
+    ['S / ↓', 'Brake — also cancels a move in progress'],
     ['A D / ← →', 'Turn'],
-    ['X', 'All stop — cancel autopilot and brake to a halt'],
+    ['X', 'Full stop — cancel the current move and brake to a halt'],
     ['E', 'Context action'],
-    ['R', 'Plot or cancel autopilot'],
+    ['R', 'Fly to the selected target, or cancel the current move'],
     ['G', 'Galaxy'],
     ['T', 'Timeline'],
     ['Space', 'Pause'],
@@ -234,7 +234,7 @@ function help(dispatch: UiDispatch): HTMLElement {
   const loop: Array<[string, string]> = [
     [
       'Mine — the core loop',
-      'Mining pays for everything else. Tap a resource node to select it, then use Autopilot to fly there; autopilot brakes the ship to a stop in range, and Mine becomes available. A lock needs you within 96 wu and below 8 wu/s. Whenever Mine is unavailable the button states the exact reason.',
+      'Mining pays for everything else. Tap a deposit and the ship flies to it and stops in range, then Mine becomes available. A lock needs you within 96 wu and below 8 wu/s. Whenever Mine is unavailable the button states the exact reason.',
     ],
     [
       'Sell, refuel, refit',
@@ -245,8 +245,8 @@ function help(dispatch: UiDispatch): HTMLElement {
       'Scan sweeps twice your sensor range for one unclaimed anomaly — abandoned cargo or a treasure asteroid — and reports it in the Timeline. It recharges every 5 seconds and sees nothing beyond that radius, so scan while exploring, not from the dock.',
     ],
     [
-      'Autopilot',
-      'Autopilot flies to the selected target and brakes to a full stop: 84 wu from a planet or node, 24 wu from a bare coordinate. The status line reads Travelling, then Braking. Thrust, steering, brake or All stop cancels it at once.',
+      'Moving around',
+      'Tap anywhere to fly there. Tap a planet or deposit to approach it. Tap your own ship to stop. The ship always brakes to a full stop on arrival: 84 wu from a planet or deposit, 24 wu from a bare point. The status line reads Travelling, then Braking. Thrust, steering, brake or Full stop cancels the move at once.',
     ],
     [
       'Take the frontier',

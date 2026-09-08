@@ -120,8 +120,13 @@ const space = new SpaceCanvas(ui.getCanvasHost(), {
   },
   onEntityTap: (id) => {
     if (!engine) return;
-    if (selectedId === id) setAutopilotTo(id);
-    else selectEntity(id);
+    // One tap both selects the target and starts the approach: making the
+    // player tap twice to go somewhere is the thing they asked us to remove.
+    selectEntity(id);
+    setAutopilotTo(id);
+  },
+  onSelfTap: () => {
+    if (engine) beginAllStop();
   },
 });
 
@@ -1081,7 +1086,7 @@ function actionsFor(
     SCALE;
   const autopilotAction = {
     id: 'autopilot',
-    label: 'Autopilot',
+    label: 'Fly here',
     icon: 'route' as const,
   };
   if ('material' in entity)

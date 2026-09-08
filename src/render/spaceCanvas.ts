@@ -77,6 +77,8 @@ type AssetKey = keyof typeof ASSETS;
 export interface SpaceCanvasOptions {
   onWorldTap?: (x: number, y: number) => void;
   onEntityTap?: (id: string) => void;
+  /** Tapping your own ship is the gesture for "stop what you are doing". */
+  onSelfTap?: () => void;
   reducedMotion?: () => boolean;
 }
 
@@ -123,7 +125,7 @@ export class SpaceCanvas {
     this.canvas.tabIndex = 0;
     this.canvas.setAttribute(
       'aria-label',
-      'Tactical space view. Tap a location to engage autopilot.',
+      'Tactical space view. Tap anywhere to fly there, tap a planet or deposit to approach it, or tap your own ship to stop.',
     );
     const context = this.canvas.getContext('2d', { alpha: false });
     if (!context) throw new Error('Canvas 2D is unavailable');
@@ -514,6 +516,15 @@ export class SpaceCanvas {
       this.camera.y +
       (event.clientY - rect.top - rect.height / 2) / this.camera.zoom;
     if (this.state) {
+      // Your own ship is the stop control, so it is tested before anything else.
+      const self = this.transformAt(this.state.playerShipId, 1);
+      if (
+        self &&
+        Math.hypot(self.x / SCALE - x, self.y / SCALE - y) <= 60 / this.camera.zoom
+      ) {
+        this.options.onSelfTap?.();
+        return;
+      }
       const entities = [
         ...this.state.planets,
         ...this.state.nodes.filter((item) => item.remaining > 0),

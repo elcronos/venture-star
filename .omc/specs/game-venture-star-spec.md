@@ -801,6 +801,8 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Inputs:** tap/click destination in local space, entity interaction, or strategic sector; current intel; fuel forecast; user confirmation if reserve forecast is negative.
 
+**Gesture contract:** movement is expressed by tapping, not by naming a mode. One tap on empty space commits a move to that point. One tap on a planet, deposit or ship both selects it and starts the approach — never two taps to go somewhere. One tap on your own ship is the stop gesture and is equivalent to `Full stop`. The player-facing vocabulary is "Fly here" and the phase readout, not "autopilot".
+
 **Formula:** desired cruise is `180 wu/s`; braking distance is `dBrake=v²/(2×150)+24 wu`; arrival tolerances are `24 wu` for a point and `84 wu` for an interaction target.
 
 **Effect:** local path uses collision waypoints with `48 wu` clearance; strategic path uses M03. Autopilot rotates, accelerates to `180 wu/s`, begins braking under power once remaining distance falls to `v²/(2×150)`, and comes to a **full stop** at `84 wu` from an interaction target or `24 wu` from a bare coordinate. Arrival at rest is required, not optional: docking refuses above `20 wu/s`, a mining lock above `8 wu/s`, and unpowered drag sheds only `8 wu/s²`, so an autopilot that merely cut throttle would coast out of range every time. Autopilot never thrusts while heading error exceeds `8000/65536` of a turn. Route and fuel forecast remain visible.
@@ -809,7 +811,7 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Edges/failures:** unreachable targets show a reason and never consume fuel. Destination destruction cancels. A moving target is repathed at `2 Hz`; if its speed exceeds flagship maximum for `3 s`, cancel. Autopilot never automatically enters a known severe hazard. It cannot activate bombs or initiate hostility.
 
-**Tests:** `T-M06-001` point arrival tolerance; `T-M06-002` interaction standoff, arrival at rest, and a dock that succeeds from where autopilot stopped; `T-M06-003` manual interrupt next tick; `T-M06-004` hostile/damage interrupt; `T-M06-005` braking without overshoot; `T-M06-006` wrap route; `T-M06-007` unreachable/vanished target; `T-M06-008` paused resume without catch-up.
+**Tests:** `T-M06-001` point arrival tolerance; `T-M06-002` interaction standoff, arrival at rest, and a dock that succeeds from where autopilot stopped; `T-M06-009` one tap moves and a tap on own ship stops; `T-M06-010` one tap on a deposit selects and approaches; `T-M06-003` manual interrupt next tick; `T-M06-004` hostile/damage interrupt; `T-M06-005` braking without overshoot; `T-M06-006` wrap route; `T-M06-007` unreachable/vanished target; `T-M06-008` paused resume without catch-up.
 
 ### M07 — Assisted station-keeping and interaction lock [v0]
 

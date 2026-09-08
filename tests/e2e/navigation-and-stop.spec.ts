@@ -376,7 +376,7 @@ test('UX-T-077: a mined deposit reports how much yield is left, and actions appe
     await page.locator('.vs-target').getByRole('button').count(),
   ).toBe(0);
   const contextBar = page.getByRole('navigation', { name: 'Context actions' });
-  for (const label of ['Mine', 'Autopilot']) {
+  for (const label of ['Mine', 'Fly here']) {
     expect(
       await contextBar.getByRole('button', { name: label, exact: true }).count(),
     ).toBe(1);
@@ -434,4 +434,71 @@ test('UX-T-079: a planet advertises what its market pays before you dock', async
   await expect(
     page.getByRole('gridcell', { name: /Sells here/ }).first(),
   ).toBeVisible();
+});
+
+test('T-M06-009: one tap on the map flies there; a tap on your own ship stops', async ({
+  page,
+}) => {
+  await launch(page);
+  const canvas = page.locator('canvas.vs-space-canvas');
+  const box = (await canvas.boundingBox())!;
+
+  const speed = () =>
+    page.evaluate(() => {
+      const state = window.__GAME__!.state!;
+      const ship = state.ships.find(
+        (candidate) => candidate.id === state.playerShipId,
+      )!;
+      return Math.hypot(ship.velocity.x, ship.velocity.y);
+    });
+  expect(await speed()).toBe(0);
+
+  // A single tap on empty space commits the move; no second tap required.
+  await page.mouse.click(box.x + box.width - 60, box.y + 60);
+  await expect.poll(speed).toBeGreaterThan(0);
+  await expect(page.locator('.vs-autopilot')).toBeVisible();
+
+  // Tapping the ship itself is the stop gesture.
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect.poll(speed, { timeout: 15_000 }).toBe(0);
+  await expect(page.locator('.vs-autopilot')).toHaveCount(0);
+});
+
+test('T-M06-010: one tap on a deposit both selects it and starts the approach', async ({
+  page,
+}) => {
+  await launch(page);
+  const target = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    const ship = state.ships.find(
+      (candidate) => candidate.id === state.playerShipId,
+    )!;
+    const node = state.nodes
+      .filter((item) => item.remaining > 0)
+      .map((item) => ({
+        id: item.id,
+        dx: (item.position.x - ship.position.x) / 1_000,
+        dy: (item.position.y - ship.position.y) / 1_000,
+      }))
+      .sort((a, b) => Math.hypot(a.dx, a.dy) - Math.hypot(b.dx, b.dy))[0]!;
+    return node;
+  });
+  const canvas = page.locator('canvas.vs-space-canvas');
+  const box = (await canvas.boundingBox())!;
+
+  // The camera sits on the ship at 0.72 zoom, so the node maps to this offset.
+  await page.mouse.click(
+    box.x + box.width / 2 + target.dx * 0.72,
+    box.y + box.height / 2 + target.dy * 0.72,
+  );
+
+  expect(
+    await page.evaluate(() => {
+      const state = window.__GAME__!.state!;
+      return state.ships.find(
+        (candidate) => candidate.id === state.playerShipId,
+      )!.selectedTargetId;
+    }),
+  ).toBe(target.id);
+  await expect(page.locator('.vs-autopilot')).toBeVisible();
 });
