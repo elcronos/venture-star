@@ -155,7 +155,8 @@ export interface GameEvent {
 export interface GameState {
   schemaVersion: 1;
   rulesVersion: '1.0.0';
-  generatorVersion: 1;
+  /** 1 predates the dense-deposit frontier; saves from it still load. */
+  generatorVersion: 1 | 2;
   campaignId: string;
   seed: string;
   width: number;

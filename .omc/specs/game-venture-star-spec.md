@@ -726,7 +726,9 @@ Deterministic random values come only from SHA-256 domain substreams derived fro
 
 ### M02 — Toroidal galaxy generation and opening-envelope validator [v0; expanded v0.1/Full]
 
-**Inputs:** validated M01 identity. Target planet count is `P = clamp(round(width × height × 0.10), 8, 90)`; v0 additionally clamps `P` to `8…12`. Planet sectors are unique. Content density per sector is sampled from deterministic streams: mineable node `22%`, asteroid field `10%`, ion storm `6%`, positive discovery `8%`; generation rules prevent mutually exclusive overlaps.
+**Inputs:** validated M01 identity. Target planet count is `P = clamp(round(width × height × 0.10), 8, 90)`; v0 additionally clamps `P` to `8…12`. Planet sectors are unique. Content density per sector is sampled from deterministic streams: mineable deposits `65%`, asteroid field `10%`, ion storm `6%`, positive discovery `8%`; generation rules prevent mutually exclusive overlaps. A sector that carries deposits carries one, plus a second at frontier tier `>=2` with `40%` chance and a third at tier `>=3` with `25%`, so the deep frontier is worth the fuel. Mining is the loop the whole economy rests on, so most of the map must have something to mine; `generatorVersion` `2` marks this density, and `1` saves still load.
+
+Every deposit records the yield it held when generated, so remaining yield can be shown as a proportion rather than a bare number. Planets vary in drawn size by a stable function of their id; size is presentation only and never changes interaction range or hit testing.
 
 **Formula:** `P` and the content probabilities above are authoritative; each validation retry uses the SHA-256 `opening-attempt:<index>` substream for integer index `0…255`.
 
@@ -2505,7 +2507,7 @@ HUD elements are ordered by urgency and may collapse only from the bottom of thi
 1. **Critical survival:** hull, armour, shield, fuel/reserve state, active severe hazard, pause/lease/save-failure state.
 2. **Immediate control:** speed, throttle, heading, station lock, autopilot state/interrupt reason, selected target, weapon state/ammo.
 3. **Interaction:** contextual action, mining progress/rate/full-cargo reason, scan progress, docking/occupation channel.
-4. **Navigation:** sector coordinates, danger band, minimap position, route next step, wrap indicator, route fuel forecast. The minimap is itself the control that opens the galaxy map.
+4. **Navigation:** sector coordinates, danger band, minimap position, route next step, wrap indicator, route fuel forecast. The minimap is itself the control that opens the galaxy map, and it fires a scan pulse on the live sector before the galaxy pauses the simulation.
 5. **Economy:** cargo used/capacity, credits, carried material totals.
 6. **Strategy:** planet-count progress, research/production summary, noncritical alerts. The current objective is not shown on the flight HUD — it competes with the context bar for the same screen edge — and appears in the pause menu instead.
 
@@ -2515,7 +2517,7 @@ Fuel turns warning at forecasted home margin `<15 FU` and displays `LOW FUEL`; e
 
 Every contextual action mirrors the simulation's own preconditions exactly: an offered action always succeeds, and a blocked one names the specific reason it is blocked (range in `wu`, closing speed, throttle, magazine, reload, emergency drift, cargo, service lock, or ownership). A control that silently does nothing is a defect, not a hint.
 
-The selected target card shows name/type, relation/faction pattern, distance in `wu`, health layers if known, interaction range state, and — for a resource deposit — remaining yield against the yield it held when generated. It carries no action buttons: actions are rendered once, in the context bar, because showing the same `Dock`/`Autopilot`/`Bomb` row in both places reads as two different controls. Unknown values display `Unknown`, not zero. Dynamic intel carries `LIVE`, `RECENT`, `STALE`, or `UNKNOWN` text and timestamp/age; static geography is not mislabeled stale.
+The selected target card shows name/type, relation/faction pattern, distance in `wu`, health layers if known, interaction range state, and — for a resource deposit — remaining yield against the yield it held when generated. It carries no action buttons: actions are rendered once, in the context bar, because showing the same `Dock`/`Autopilot`/`Bomb` row in both places reads as two different controls. For a planet it also names what the market pays, led by whatever the hold is carrying, so the player can judge where to sell before spending fuel to get there. The galaxy map marks the same planets with a market glyph under the `Trade intel` filter, which is on by default. Unknown values display `Unknown`, not zero. Dynamic intel carries `LIVE`, `RECENT`, `STALE`, or `UNKNOWN` text and timestamp/age; static geography is not mislabeled stale.
 
 The flight screen carries a persistent minimap: one square cell per galaxy sector at the campaign's `width×height`, the occupied sector outlined, charted sectors filled and uncharted sectors left dim, known planets marked with their ownership colour, known hazards hatched, and a marker showing the ship's fractional position inside its sector. It is decorative to assistive technology; the same information is exposed as a text readout naming the sector, the percentage across and down the sector, and the charted-sector count. The marker tracks the ship every simulation tick even on ticks where the HUD document is not rebuilt.
 

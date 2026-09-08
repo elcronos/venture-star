@@ -101,6 +101,12 @@ function targetCard(flight: FlightState): HTMLElement | null {
           }),
         ]),
       ]),
+      target.trade
+        ? el('p', { className: 'vs-target__trade' }, [
+            icon('market'),
+            el('span', { text: target.trade }),
+          ])
+        : null,
       target.deposit
         ? el('div', { className: 'vs-target__deposit' }, [
             meter(target.deposit, 'mining', 'vs-meter--deposit'),

@@ -95,8 +95,8 @@ export function renderMinimap(
       className: 'vs-minimap__open',
       attrs: {
         type: 'button',
-        title: 'Open the galaxy map to plot a route',
-        'aria-label': `Open galaxy map. Currently in sector ${sector.x + 1}.${sector.y + 1} of ${width} by ${height}.`,
+        title: 'Scan this sector and open the galaxy map to plot a route',
+        'aria-label': `Scan and open galaxy map. Currently in sector ${sector.x + 1}.${sector.y + 1} of ${width} by ${height}.`,
       },
     },
     [
@@ -109,9 +109,12 @@ export function renderMinimap(
       grid,
     ],
   );
-  open.addEventListener('click', () =>
-    dispatch({ type: 'navigate', destination: 'galaxy' }),
-  );
+  open.addEventListener('click', () => {
+    // Scan first: opening the galaxy pauses the simulation, and a scan pulse
+    // is only meaningful against the live sector the ship is sitting in.
+    dispatch({ type: 'scan' });
+    dispatch({ type: 'navigate', destination: 'galaxy' });
+  });
   const root = el(
     'section',
     {

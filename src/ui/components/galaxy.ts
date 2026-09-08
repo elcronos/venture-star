@@ -18,6 +18,7 @@ function cellLabel(cell: GalaxyCell): string {
     cell.owner ? `${cell.owner} ownership` : '',
     cell.danger ? `${cell.danger} danger` : '',
     cell.hazard ? `hazard ${cell.hazard}` : '',
+    cell.trade ?? '',
     cell.discovery ? 'discovery' : '',
     cell.intel ? `${cell.intel} intel` : '',
   ]
@@ -71,6 +72,7 @@ function galaxyCell(
           })
         : null,
       cell.planet ? icon('planet') : null,
+      cell.trade && state.galaxy.filters.trade ? icon('market') : null,
       cell.resources ? icon('ore') : null,
       cell.discovery ? icon('discovery') : null,
       cell.danger

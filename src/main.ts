@@ -121,12 +121,7 @@ const space = new SpaceCanvas(ui.getCanvasHost(), {
   onEntityTap: (id) => {
     if (!engine) return;
     if (selectedId === id) setAutopilotTo(id);
-    else {
-      selectedId = id;
-      send({ type: 'selectTarget', targetId: id });
-      flush();
-      render();
-    }
+    else selectEntity(id);
   },
 });
 
@@ -164,6 +159,7 @@ async function boot(): Promise<void> {
       render();
     },
     autopilotTo: setAutopilotTo,
+    selectEntity: selectEntity,
     space,
   });
 }
@@ -579,6 +575,15 @@ function resumeSimulation(): void {
   flush();
 }
 
+/** Selects an entity the way tapping it on the tactical canvas does. */
+function selectEntity(id: string): void {
+  if (!engine) return;
+  selectedId = id;
+  send({ type: 'selectTarget', targetId: id });
+  flush();
+  render();
+}
+
 function setAutopilotTo(id: string): void {
   const entity = findEntity(id);
   if (!entity) return;
@@ -927,7 +932,7 @@ function buildUiState(): UiState {
         hazards: true,
         discoveries: true,
         factions: true,
-        trade: false,
+        trade: true,
       },
     },
     dock: dockState(state, ship, docked),
@@ -1128,6 +1133,24 @@ function actionsFor(
   return [autopilotAction];
 }
 
+/**
+ * What a market pays right now, led by whatever the hold is actually carrying,
+ * so the player can tell where to sell without docking to find out.
+ */
+function tradeSummary(ship: Ship, planet: Planet): string {
+  const materials: Material[] = ['ore', 'metal', 'crystal', 'exotic'];
+  const carried = materials.filter((material) => ship.cargo[material] > 0);
+  const listed = (carried.length ? carried : materials)
+    .filter((material) => planet.market.prices[material] > 0)
+    .slice(0, 3)
+    .map(
+      (material) =>
+        `${planet.market.prices[material]}c ${material}${carried.includes(material) ? ` ×${ship.cargo[material]}` : ''}`,
+    );
+  if (!listed.length) return 'Market buys nothing you carry';
+  return `${carried.length ? 'Pays for your cargo' : 'Buys'}: ${listed.join(' · ')}`;
+}
+
 function targetState(
   state: GameState,
   ship: Ship,
@@ -1179,6 +1202,7 @@ function targetState(
           hull: meter(entity.hull, 120, 'Hull'),
         }
       : {}),
+    ...('market' in entity ? { trade: tradeSummary(ship, entity) } : {}),
     ...('material' in entity
       ? {
           deposit: meter(
@@ -1213,7 +1237,13 @@ function galaxyCells(state: GameState, ship: Ship): GalaxyCell[] {
         discovered,
         danger: dangerAt(state, x, y),
         ...(planet && discovered
-          ? { planet: planet.name, owner: relation(planet.owner) }
+          ? {
+              planet: planet.name,
+              owner: relation(planet.owner),
+              ...(planet.owner === 'player' || planet.owner === null
+                ? { trade: `Sells here · ${planet.market.prices.ore}c ore` }
+                : {}),
+            }
           : {}),
         ...(discovered &&
         state.nodes.some(

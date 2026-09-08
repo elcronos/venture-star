@@ -45,6 +45,8 @@ export interface TargetState {
   hull?: MeterState;
   /** Remaining yield of a resource deposit, against what it held when found. */
   deposit?: MeterState;
+  /** What this planet's market pays, so selling can be judged before flying. */
+  trade?: string;
   actions: ContextAction[];
 }
 
@@ -95,6 +97,8 @@ export interface GalaxyCell {
   resources?: boolean;
   hazard?: string;
   discovery?: boolean;
+  /** Set when a discovered planet here has a market the player may dock with. */
+  trade?: string;
   intel?: IntelState;
   selected?: boolean;
   player?: boolean;

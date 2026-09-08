@@ -372,12 +372,17 @@ export class SpaceCanvas {
       'planetArid',
       'planetIce',
     ];
+    const hash = this.hash(planet.id);
     const image = this.images.get(
-      variants[this.hash(planet.id) % variants.length] ?? 'planetRocky',
+      variants[hash % variants.length] ?? 'planetRocky',
     );
+    // Worlds are not all the same size. The scale is derived from the id, so it
+    // is stable across frames and sessions, and it never changes hit testing.
+    const scale = 0.72 + ((hash >>> 3) % 80) / 100;
+    const size = 150 * scale;
     const x = planet.position.x / SCALE;
     const y = planet.position.y / SCALE;
-    this.image(ctx, image, x, y, 150, 150);
+    this.image(ctx, image, x, y, size, size);
     ctx.strokeStyle =
       planet.owner === 'player'
         ? '#2DB6A3'
@@ -386,9 +391,9 @@ export class SpaceCanvas {
           : '#A9B8C6';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(x, y, 82, 0, Math.PI * 2);
+    ctx.arc(x, y, 82 * scale, 0, Math.PI * 2);
     ctx.stroke();
-    this.label(ctx, planet.name, x, y + 106);
+    this.label(ctx, planet.name, x, y + 24 + size / 2);
   }
 
   private drawNode(ctx: CanvasRenderingContext2D, node: ResourceNode): void {

@@ -394,12 +394,44 @@ test('UX-T-077: a mined deposit reports how much yield is left, and actions appe
     .not.toBe(String(capacity));
 });
 
-test('UX-T-078: the minimap opens the galaxy map', async ({ page }) => {
+test('UX-T-078: the minimap scans and opens the galaxy map', async ({
+  page,
+}) => {
   await launch(page);
-  await page
-    .getByRole('button', { name: /^Open galaxy map/ })
-    .click();
+  const scans = () =>
+    page.evaluate(
+      () =>
+        window.__GAME__!.state!.events.filter(
+          (event) => event.type === 'SCAN_PULSE',
+        ).length,
+    );
+  const before = await scans();
+
+  await page.getByRole('button', { name: /^Scan and open galaxy map/ }).click();
+
   await expect(
     page.getByRole('heading', { name: 'Galaxy', exact: true }),
+  ).toBeVisible();
+  expect(await scans()).toBe(before + 1);
+});
+
+test('UX-T-079: a planet advertises what its market pays before you dock', async ({
+  page,
+}) => {
+  await launch(page);
+  const home = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    return state.planets.find((planet) => planet.owner === 'player')!.id;
+  });
+  await page.evaluate((id) => {
+    window.__GAME__!.selectEntity(id);
+  }, home);
+
+  await expect(page.locator('.vs-target__trade')).toContainText(/\d+c ore/);
+
+  // The galaxy map marks the same planet as somewhere to sell.
+  await page.getByRole('button', { name: /^Scan and open galaxy map/ }).click();
+  await expect(
+    page.getByRole('gridcell', { name: /Sells here/ }).first(),
   ).toBeVisible();
 });

@@ -23,6 +23,9 @@ import {
   type Vec2,
 } from './types';
 
+/** Chance a sector away from home carries at least one deposit, in basis points. */
+const SECTOR_HAS_NODES_BP = 6_500;
+
 const MATERIALS: Material[] = ['ore', 'metal', 'crystal', 'exotic'];
 const BASE_PRICES: Record<Material, number> = {
   ore: 10,
@@ -130,7 +133,7 @@ export function createGame(options: CampaignOptions): GameState {
   const state: GameState = {
     schemaVersion: 1,
     rulesVersion: '1.0.0',
-    generatorVersion: 1,
+    generatorVersion: 2,
     campaignId,
     seed,
     width,
@@ -272,29 +275,37 @@ function generateNodes(
     for (let x = 0; x < width; x++) {
       if (x === homeX && y === homeY) continue;
       const rng = new RandomStream(seed, 'nodes', `${x},${y}`);
-      if (!rng.chance(2200)) continue;
+      // Mining is the core loop, so most sectors carry something to mine and
+      // the deep frontier carries more of it.
+      if (!rng.chance(SECTOR_HAS_NODES_BP)) continue;
       const tier = frontierTier(x, y, homeX, homeY, width, height);
-      const material: Material =
-        rng.int(0, 9) < 6 ? 'ore' : rng.int(0, 1) ? 'metal' : 'crystal';
-      const ranges: Record<Material, [number, number]> = {
-        ore: [20, 60],
-        metal: [12, 40],
-        crystal: [8, 24],
-        exotic: [2, 8],
-      };
-      const multipliers = [0.85, 1, 1.25, 1.6, 2.1];
-      const [min, max] = ranges[material];
-      const yield_ = Math.floor(rng.int(min, max) * multipliers[tier]!);
-      nodes.push({
-        id: '',
-        sectorX: x,
-        sectorY: y,
-        position: localPosition(x, y, rng),
-        material,
-        remaining: yield_,
-        capacity: yield_,
-        miningProgressMilli: 0,
-      });
+      const count =
+        1 +
+        (tier >= 2 && rng.chance(4_000) ? 1 : 0) +
+        (tier >= 3 && rng.chance(2_500) ? 1 : 0);
+      for (let index = 0; index < count; index++) {
+        const material: Material =
+          rng.int(0, 9) < 6 ? 'ore' : rng.int(0, 1) ? 'metal' : 'crystal';
+        const ranges: Record<Material, [number, number]> = {
+          ore: [20, 60],
+          metal: [12, 40],
+          crystal: [8, 24],
+          exotic: [2, 8],
+        };
+        const multipliers = [0.85, 1, 1.25, 1.6, 2.1];
+        const [min, max] = ranges[material];
+        const yielded = Math.floor(rng.int(min, max) * multipliers[tier]!);
+        nodes.push({
+          id: '',
+          sectorX: x,
+          sectorY: y,
+          position: localPosition(x, y, rng),
+          material,
+          remaining: yielded,
+          capacity: yielded,
+          miningProgressMilli: 0,
+        });
+      }
     }
   nodes.sort(entityOrder).forEach((node, index) => {
     node.id = `node-${String(index).padStart(3, '0')}`;

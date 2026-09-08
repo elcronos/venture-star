@@ -63,7 +63,7 @@ export function emptyUiState(
         hazards: true,
         discoveries: true,
         factions: true,
-        trade: false,
+        trade: true,
       },
     },
     dock: {

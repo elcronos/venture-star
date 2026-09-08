@@ -1150,7 +1150,7 @@ const restoredStateSchema = z
   .object({
     schemaVersion: z.literal(1),
     rulesVersion: z.literal('1.0.0'),
-    generatorVersion: z.literal(1),
+    generatorVersion: z.union([z.literal(1), z.literal(2)]),
     campaignId: z.string().min(1),
     seed: z.string().min(1),
     width: z.number().int().min(10).max(30),

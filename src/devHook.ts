@@ -10,6 +10,7 @@ export interface DevHookPort {
   flush(): void;
   createCampaign(options: CampaignOptions): void;
   autopilotTo(entityId: string): void;
+  selectEntity(entityId: string): void;
   space: SpaceCanvas;
 }
 
@@ -40,6 +41,9 @@ export function installTestHook(port: DevHookPort): void {
       autopilotTo(entityId: string) {
         port.autopilotTo(entityId);
       },
+      selectEntity(entityId: string) {
+        port.selectEntity(entityId);
+      },
       presentation() {
         return port.space.presentation;
       },
@@ -57,6 +61,7 @@ declare global {
       setPaused(paused: boolean): void;
       create(options: CampaignOptions): void;
       autopilotTo(entityId: string): void;
+      selectEntity(entityId: string): void;
       presentation(): { frames: number; x: number; y: number };
     }>;
   }
