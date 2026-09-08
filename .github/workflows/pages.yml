@@ -28,6 +28,12 @@ jobs:
       - run: npm run test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: test-results
+          retention-days: 3
       - run: npm run build
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
