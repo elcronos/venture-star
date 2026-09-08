@@ -79,6 +79,9 @@ test('UX-T-076: the minimap reports the ship sector, charted fog, and live posit
   const minimap = page.getByLabel('Sector minimap');
   await expect(minimap).toBeVisible();
 
+  // Hold the simulation still so the static assertions cannot race the ship
+  // across a sector boundary; motion is exercised at the end of the test.
+  await page.evaluate(() => window.__GAME__!.setPaused(true));
   const sector = await page.evaluate(() => {
     const state = window.__GAME__!.state!;
     const ship = state.ships.find(
@@ -98,11 +101,24 @@ test('UX-T-076: the minimap reports the ship sector, charted fog, and live posit
   );
   const outline = minimap.locator('.vs-minimap__sector');
   expect(await outline.count()).toBe(1);
+  // Read the outline and the ship in one evaluation: sampling them separately
+  // would race the ship crossing a sector boundary between the two reads.
   expect(
-    await outline.evaluate((node) =>
-      getComputedStyle(node).getPropertyValue('--minimap-sector-x').trim(),
-    ),
-  ).toBe((sector.x / sector.width).toFixed(5));
+    await page.evaluate(() => {
+      const state = window.__GAME__!.state!;
+      const ship = state.ships.find(
+        (candidate) => candidate.id === state.playerShipId,
+      )!;
+      const node = document.querySelector<HTMLElement>('.vs-minimap__sector')!;
+      const painted = getComputedStyle(node)
+        .getPropertyValue('--minimap-sector-x')
+        .trim();
+      const expected = (
+        Math.floor(ship.position.x / 1_000 / 1_024) / state.width
+      ).toFixed(5);
+      return painted === expected;
+    }),
+  ).toBe(true);
   await expect(minimap.locator('.vs-minimap__readout')).toContainText(
     `Sector ${sector.x + 1}.${sector.y + 1} of ${sector.width} by ${sector.height}`,
   );
@@ -119,6 +135,7 @@ test('UX-T-076: the minimap reports the ship sector, charted fog, and live posit
       ].join(',');
     });
   const before = await markerAt();
+  await page.evaluate(() => window.__GAME__!.setPaused(false));
   await page.keyboard.down('w');
   await expect.poll(markerAt, { timeout: 10_000 }).not.toBe(before);
   await page.keyboard.up('w');
