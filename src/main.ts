@@ -15,13 +15,16 @@ import {
   type Ship,
   type UpgradeFamily,
 } from './game/types';
+import { installTestHook } from './devHook';
 import { VentureStore } from './persistence/store';
 import { SpaceCanvas } from './render/spaceCanvas';
+import { minimapState, syncMinimapMarker } from './ui/components/minimap';
 import {
   mountVentureUi,
   type CampaignRecord,
   type CampaignSetup,
   type DockState,
+  type FlightState,
   type GalaxyCell,
   type SettingsState,
   type UiAction,
@@ -79,6 +82,8 @@ let controls = {
   throttle: 0,
 };
 let joystickActive = false;
+/** Cancels autopilot and brakes to rest; cleared once the ship is stationary. */
+let allStop = false;
 let saveState: UiState['saveState'] = 'Saved';
 let sealed = false;
 let sealing = false;
@@ -129,7 +134,17 @@ async function boot(): Promise<void> {
   setInterval(() => void journalCampaign(), 10_000);
   setInterval(refreshLease, 2_000);
   window.addEventListener('beforeunload', releaseLease);
-  installTestHook();
+  installTestHook({
+    engine: () => engine,
+    send,
+    render,
+    flush,
+    createCampaign(options) {
+      engine = GameEngine.create(options);
+      render();
+    },
+    space,
+  });
 }
 
 function gameLoop(): void {
@@ -160,6 +175,12 @@ function gameLoop(): void {
     controls.left ||
     controls.right ||
     controls.brake;
+  // The canvas takes every tick so motion stays smooth, while the DOM rebuild
+  // stays throttled and paused during input to keep pointer capture intact.
+  if (advanced) {
+    space.setState(state);
+    if (root) syncMinimapMarker(root, minimapState(state, player, []));
+  }
   if (
     advanced &&
     !controlHeld &&
@@ -172,8 +193,28 @@ function gameLoop(): void {
   if (state.outcome !== 'active') void sealIfNeeded(state);
 }
 
+/** Cuts autopilot and throttle, then holds the brake until the ship is at rest. */
+function beginAllStop(): void {
+  allStop = true;
+  autopilot = null;
+  controls.throttle = 0;
+  controls.thrust = false;
+  controls.left = false;
+  controls.right = false;
+  render();
+}
+
 function applyFlightIntent(state: GameState): void {
   const ship = playerShip(state);
+  if (allStop) {
+    const stopped = ship.velocity.x === 0 && ship.velocity.y === 0;
+    send({ type: 'flight', throttle: 0, turn: 0, brake: !stopped });
+    if (stopped) {
+      allStop = false;
+      render();
+    }
+    return;
+  }
   if (
     ship.miningNodeId &&
     !autopilot &&
@@ -183,6 +224,7 @@ function applyFlightIntent(state: GameState): void {
     !controls.brake
   )
     return;
+  if (controls.brake) autopilot = null;
   let turn: -1 | 0 | 1 = controls.left ? -1 : controls.right ? 1 : 0;
   let throttle = controls.thrust ? 1 : controls.throttle;
   if (autopilot) {
@@ -262,7 +304,13 @@ function dispatchUi(action: UiAction): void {
       break;
     case 'flight-control':
       controls[action.control] = action.active;
-      if (action.active) autopilot = null;
+      if (action.active) {
+        autopilot = null;
+        allStop = false;
+      }
+      return;
+    case 'all-stop':
+      beginAllStop();
       return;
     case 'joystick':
       joystickActive = action.active;
@@ -275,6 +323,7 @@ function dispatchUi(action: UiAction): void {
           Math.min(1, Math.hypot(action.x, action.y)),
         );
         autopilot = null;
+        allStop = false;
       }
       return;
     case 'clear-flight-inputs':
@@ -289,6 +338,7 @@ function dispatchUi(action: UiAction): void {
       return;
     case 'throttle':
       controls.throttle = Math.max(0, Math.min(1, action.value / 100));
+      if (controls.throttle > 0) allStop = false;
       return;
     case 'context-action':
       runContextAction(action.actionId, action.targetId);
@@ -699,6 +749,8 @@ function buildUiState(): UiState {
     state.planets.find((planet) => planet.owner === 'player')!;
   const selected = selectedId ? findEntityInState(state, selectedId) : null;
   const contacts = nearbyContacts(state, ship);
+  const cells = galaxyCells(state, ship);
+  const minimap = minimapState(state, ship, cells);
   const timeline = state.events
     .slice(-100)
     .reverse()
@@ -797,11 +849,13 @@ function buildUiState(): UiState {
       alerts: timeline.slice(0, 4),
       timeline,
       emergencyDrift: ship.emergency,
+      minimap,
+      ...(allStop ? { allStop: true } : {}),
     },
     galaxy: {
       width: state.width,
       height: state.height,
-      cells: galaxyCells(state, ship),
+      cells,
       zoom: 1,
       ...(selectedCell
         ? { route: routeForecast(state, ship, selectedCell.x, selectedCell.y) }
@@ -860,6 +914,13 @@ function emptyUiState(): UiState {
       actions: [],
       alerts: [],
       timeline: [],
+      minimap: {
+        width: 10,
+        height: 10,
+        sector: { x: 0, y: 0 },
+        offset: { x: 0.5, y: 0.5 },
+        cells: [],
+      },
     },
     galaxy: {
       width: 10,
@@ -1458,49 +1519,14 @@ function onKey(event: KeyboardEvent): void {
   if (event.key === 'a' || event.key === 'ArrowLeft') controls.left = active;
   if (event.key === 'd' || event.key === 'ArrowRight') controls.right = active;
   if (event.key === 's' || event.key === 'ArrowDown') controls.brake = active;
+  if (active && (controls.thrust || controls.left || controls.right))
+    allStop = false;
   if (!active || event.repeat) return;
+  if (event.key.toLowerCase() === 'x') dispatchUi({ type: 'all-stop' });
   if (event.key === ' ')
     dispatchUi(
       engine?.snapshot().running ? { type: 'pause' } : { type: 'resume' },
     );
   if (event.key.toLowerCase() === 'm' || event.key.toLowerCase() === 'g')
     dispatchUi({ type: 'navigate', destination: 'galaxy' });
-}
-
-function installTestHook(): void {
-  if (!import.meta.env.DEV && import.meta.env.MODE !== 'test') return;
-  Object.defineProperty(window, '__GAME__', {
-    value: Object.freeze({
-      get state() {
-        return engine?.snapshot() ?? null;
-      },
-      input(command: GameCommand) {
-        send(command);
-      },
-      tick(frames: number) {
-        return engine?.stepTicks(frames) ?? null;
-      },
-      setPaused(paused: boolean) {
-        send({ type: 'pause', paused });
-        flush();
-      },
-      create(options: CampaignOptions) {
-        engine = GameEngine.create(options);
-        render();
-      },
-    }),
-    configurable: false,
-  });
-}
-
-declare global {
-  interface Window {
-    __GAME__?: Readonly<{
-      readonly state: GameState | null;
-      input(command: GameCommand): void;
-      tick(frames: number): GameState | null;
-      setPaused(paused: boolean): void;
-      create(options: CampaignOptions): void;
-    }>;
-  }
 }

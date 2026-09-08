@@ -98,6 +98,16 @@ export interface GalaxyCell {
   player?: boolean;
 }
 
+export interface MinimapState {
+  width: number;
+  height: number;
+  /** Zero-based sector the player currently occupies. */
+  sector: { x: number; y: number };
+  /** Player position inside that sector, 0..1 on each axis. */
+  offset: { x: number; y: number };
+  cells: GalaxyCell[];
+}
+
 export interface RouteForecast {
   destination: string;
   wrappedDistance: number;
@@ -252,6 +262,9 @@ export interface FlightState {
   alerts: AlertState[];
   timeline: TimelineEvent[];
   emergencyDrift?: boolean;
+  minimap: MinimapState;
+  /** True while the all-stop assist is braking the ship to rest. */
+  allStop?: boolean;
 }
 
 export interface UiState {
@@ -325,6 +338,7 @@ export type UiAction =
     }
   | { type: 'joystick'; x: number; y: number; active: boolean }
   | { type: 'clear-flight-inputs' }
+  | { type: 'all-stop' }
   | { type: 'throttle'; value: number };
 
 export type UiDispatch = (action: UiAction) => void;
@@ -339,6 +353,7 @@ export interface CampaignSetup {
 }
 
 export type UiIcon =
+  | 'all-stop'
   | 'armour'
   | 'back'
   | 'bomb'

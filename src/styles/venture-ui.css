@@ -113,6 +113,23 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
 .vs-joystick__knob { position: absolute; top: 50%; left: 50%; width: 56px; height: 56px; border: 2px solid var(--vs-player); border-radius: 50%; background: var(--vs-space-800); transform: translate(calc(-50% + var(--joystick-x, 0) * 48px), calc(-50% + var(--joystick-y, 0) * 48px)); }
 .vs-screen-reader-flight { position: absolute; left: -9999px; }
 
+.vs-minimap { position: fixed; z-index: 3; bottom: var(--vs-safe-bottom); left: var(--vs-safe-left); width: 176px; padding: .5rem; border: var(--vs-border); border-radius: var(--vs-radius); background: var(--vs-panel); }
+.vs-minimap__heading { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin-bottom: .35rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.vs-minimap__heading .vs-eyebrow { font-size: .68rem; }
+.vs-minimap__grid { position: relative; display: grid; grid-template-columns: repeat(var(--minimap-cols), 1fr); grid-template-rows: repeat(var(--minimap-rows), 1fr); aspect-ratio: var(--minimap-cols) / var(--minimap-rows); border: 1px solid var(--vs-grid); background: var(--vs-space-950); }
+.vs-minimap__cell { border-right: 1px solid rgb(45 182 163 / 12%); border-bottom: 1px solid rgb(45 182 163 / 12%); }
+.vs-minimap__cell.is-unknown { background: var(--vs-space-900); }
+.vs-minimap__cell.is-known { background: rgb(45 182 163 / 22%); }
+.vs-minimap__cell.has-planet { box-shadow: inset 0 0 0 2px var(--vs-neutral); }
+.vs-minimap__cell.has-planet.owner-player { box-shadow: inset 0 0 0 2px var(--vs-teal); }
+.vs-minimap__cell.has-planet.owner-hostile, .vs-minimap__cell.has-planet.owner-rival { box-shadow: inset 0 0 0 2px var(--vs-coral); }
+.vs-minimap__cell.has-hazard { background-image: repeating-linear-gradient(135deg, transparent, transparent 3px, var(--vs-amber) 4px, transparent 5px); }
+/* Drawn as a box rather than a cell class so it tracks the ship every tick. */
+.vs-minimap__sector { position: absolute; top: calc(var(--minimap-sector-y, 0) * 100%); left: calc(var(--minimap-sector-x, 0) * 100%); width: calc(100% / var(--minimap-cols)); height: calc(100% / var(--minimap-rows)); border: 2px solid var(--vs-cream); }
+.vs-minimap__marker { position: absolute; top: calc(var(--minimap-y, .5) * 100%); left: calc(var(--minimap-x, .5) * 100%); width: 7px; height: 7px; border: 1px solid var(--vs-space-950); border-radius: 50%; background: var(--vs-player); transform: translate(-50%, -50%); }
+.vs-minimap__readout { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.vs-button--allstop.is-active { border-color: var(--vs-coral); }
+
 .vs-galaxy__layout, .vs-history__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem); gap: 1rem; }
 .vs-galaxy__viewport { position: relative; min-height: 70dvh; overflow: auto; border: var(--vs-border); background: rgb(5 9 20 / 82%); }
 .vs-galaxy__grid { display: grid; grid-template-columns: repeat(var(--galaxy-columns), minmax(44px, calc(64px * var(--galaxy-zoom)))); width: max-content; min-width: 100%; padding: 1rem; }
@@ -210,6 +227,8 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
   .vs-status__data { display: none; } .vs-target__facts { grid-template-columns: 1fr; }
   .vs-target__facts div:nth-child(n+3), .vs-target__health { display: none; }
   .vs-objective { bottom: calc(var(--vs-safe-bottom) + 64px); width: calc(100vw - 24px); }
+  .vs-minimap { right: var(--vs-safe-right); bottom: calc(var(--vs-safe-bottom) + 232px); left: auto; width: 112px; padding: .35rem; }
+  .vs-minimap__heading { flex-direction: column; gap: 0; font-size: .72rem; }
   .vs-context-actions { right: var(--vs-safe-right); bottom: var(--vs-safe-bottom); left: auto; transform: none; }
   .vs-context-actions .vs-button span { max-width: 7rem; }
   .vs-critical-banner { top: calc(var(--vs-safe-top) + 62px); }

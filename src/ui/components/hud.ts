@@ -1,4 +1,5 @@
 import { button, el, formatNumber, icon } from '../dom';
+import { renderMinimap } from './minimap';
 import type {
   FlightState,
   MeterState,
@@ -185,7 +186,27 @@ function contacts(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   );
 }
 
+/**
+ * The flight controls are stateful input surfaces holding pointer capture, so
+ * they are built once and reused across HUD rebuilds rather than recreated.
+ * Recreating them mid-drag drops the capture and the matching pointerup.
+ */
+let cachedControls: {
+  dispatch: UiDispatch;
+  root: HTMLElement;
+  throttle: HTMLInputElement;
+  label: HTMLElement;
+} | null = null;
+
 function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
+  if (cachedControls?.dispatch === dispatch) {
+    const { root, throttle, label } = cachedControls;
+    // A slider being dragged owns its own value; do not fight the pointer.
+    if (document.activeElement !== throttle)
+      throttle.value = String(flight.throttle);
+    label.textContent = `Throttle ${flight.throttle}%`;
+    return root;
+  }
   const hold = (control: 'thrust' | 'left' | 'right' | 'brake') => {
     const node = button(
       control === 'brake' ? 'Brake' : control,
@@ -269,7 +290,8 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   joystick.addEventListener('pointerup', stopJoystick);
   joystick.addEventListener('pointercancel', stopJoystick);
   joystick.addEventListener('lostpointercapture', stopJoystick);
-  return el(
+  const throttleLabel = el('span', { text: `Throttle ${flight.throttle}%` });
+  const root = el(
     'section',
     {
       className: 'vs-touch-controls',
@@ -286,7 +308,7 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
         [hold('thrust'), hold('left'), hold('right'), hold('brake')],
       ),
       el('label', { className: 'vs-throttle' }, [
-        el('span', { text: `Throttle ${flight.throttle}%` }),
+        throttleLabel,
         throttle,
         el('span', { className: 'vs-throttle__buttons' }, [
           button(
@@ -311,6 +333,8 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
       ]),
     ],
   );
+  cachedControls = { dispatch, root, throttle, label: throttleLabel };
+  return root;
 }
 
 export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
@@ -364,6 +388,11 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
           () => dispatch({ type: 'open-overlay', overlay: 'timeline' }),
           { icon: 'timeline', className: 'vs-button--compact' },
         ),
+        button('All stop', () => dispatch({ type: 'all-stop' }), {
+          icon: 'all-stop',
+          className: `vs-button--compact vs-button--allstop ${flight.allStop ? 'is-active' : ''}`,
+          title: 'Cancel autopilot and brake to a full stop (X)',
+        }),
         state.pauseReasons.length
           ? button(
               'PAUSED',
@@ -454,6 +483,7 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
             : null,
         ],
       ),
+      renderMinimap(flight.minimap),
       targetCard(flight, dispatch),
       flight.objective
         ? el(

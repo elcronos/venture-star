@@ -1,6 +1,8 @@
 import type { UiIcon } from './types';
 
 const iconUrls: Record<UiIcon, string> = {
+  'all-stop': new URL('../../assets/svg/icons/all-stop.svg', import.meta.url)
+    .href,
   armour: new URL('../../assets/svg/icons/armour.svg', import.meta.url).href,
   back: new URL('../../assets/svg/icons/back.svg', import.meta.url).href,
   bomb: new URL('../../assets/svg/icons/bomb.svg', import.meta.url).href,

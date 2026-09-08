@@ -56,6 +56,8 @@ No undocumented colour is allowed. Alpha variants of these tokens are permitted.
 - Hazards: broad translucent regions, hatching, and explicit warning boundary before particles.
 - Radar/navigation: thin broken rings, bearing ticks, route chevrons, and paired wrap markers used only when information is being communicated.
 - UI: clipped-corner panels and buttons with restrained eight-unit corner treatment; no ornamental sci-fi clutter.
+- Halt controls: an octagonal cream plate carrying a hollow `beacon-coral` square. It must stay distinct in silhouette from the two-bar `pause` glyph, because both appear together in the flight bar and collapse to icon-only on small screens.
+- Flight minimap: renderer geometry only — one square cell per sector on `grid-navy` lines, charted sectors tinted `survey-teal` at low alpha, uncharted left on `space-900`, the occupied sector outlined in `hull-cream`, and the ship marker a `player-light` dot. Ownership uses the planet ring colours, never hue alone, and every value is duplicated in a text readout.
 
 ## Line and detail standards
 

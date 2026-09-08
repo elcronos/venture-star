@@ -767,7 +767,7 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 ### M04 — Flagship manual flight [v0]
 
-**Inputs:** steering vector from keyboard or virtual joystick, throttle `q∈[0,1]`, brake input, current velocity/heading, equipment modifiers, M05 fuel mode.
+**Inputs:** steering vector from keyboard or virtual joystick, throttle `q∈[0,1]`, brake input, all-stop input, current velocity/heading, equipment modifiers, M05 fuel mode.
 
 **Formula:** input dead zone is `0.12`; remap magnitude as `(m-0.12)/0.88`. Turn rate is `ω = lerp(150°,55°,speed/maxSpeed) × turnModifier /s`. Forward acceleration is `a = 92 × q × engineModifier wu/s²`; reverse/brake acceleration is `150 wu/s²`. Drag while unpowered is `8 wu/s²`. Base `maxSpeed=220 wu/s`; normal cruise threshold is `96 wu/s`. Velocity is integrated semi-implicitly at fixed ticks into scaled integer authority.
 
@@ -775,9 +775,11 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **State transition:** `IDLE ↔ THRUSTING ↔ CRUISING ↔ BRAKING`; M06 may enter `AUTOPILOT`; M07 may enter `STATION_KEEP`; M05 can force `EMERGENCY_DRIFT`; destruction enters M28 transaction.
 
-**Edges/failures:** opposite keyboard directions cancel. Losing window focus clears held inputs next tick. Touch joystick release returns input to zero within `50 ms`. UI/menu input never leaks into flight.
+**All stop:** an explicit `All stop` control (HUD button, or `X` on keyboard) is always available during flight. It cancels autopilot, zeroes throttle, releases held steering, and holds brake every tick until velocity is exactly zero, then releases itself. It is a request, not a mode: any thrust, steering, joystick, or non-zero throttle input cancels it immediately. It never spends fuel beyond normal braking and never overrides pause, sealing, or emergency drift.
 
-**Tests:** `T-M04-001` acceleration/max speed; `T-M04-002` turn curve; `T-M04-003` brake distance (`≤195 wu` from max speed); `T-M04-004` collision damage; `T-M04-005` focus-loss clears thrust; `T-M04-006` 30/60/120 FPS deterministic position.
+**Edges/failures:** opposite keyboard directions cancel. Losing window focus clears held inputs next tick. Touch joystick release returns input to zero within `50 ms`. UI/menu input never leaks into flight. All stop issued while paused takes effect on the first tick after resume.
+
+**Tests:** `T-M04-001` acceleration/max speed; `T-M04-002` turn curve; `T-M04-003` brake distance (`≤195 wu` from max speed); `T-M04-004` collision damage; `T-M04-005` focus-loss clears thrust; `T-M04-006` 30/60/120 FPS deterministic position; `T-M04-007` all stop halts a cruising ship and cancels autopilot.
 
 ### M05 — Fuel, refueling, range forecast, and emergency reserve [v0]
 
@@ -801,7 +803,7 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Effect:** local path uses collision waypoints with `48 wu` clearance; strategic path uses M03. Autopilot rotates, accelerates to `180 wu/s`, begins braking at `v²/(2×150)+24 wu`, and stops at `84 wu` from an interaction target or within `24 wu` of a point. Route and fuel forecast remain visible.
 
-**State transition:** `OFF → PLOTTING → TRAVEL → APPROACH → ARRIVED → OFF`. Transition to `INTERRUPTED` on manual steering magnitude `>0.20`, brake, hostile target entering live sensor range, incoming damage, newly detected severe hazard on route, route invalidation, or predicted usable fuel below zero. User may explicitly resume after any interruption. Opening a pausing screen suspends but does not cancel autopilot.
+**State transition:** `OFF → PLOTTING → TRAVEL → APPROACH → ARRIVED → OFF`. Transition to `INTERRUPTED` on manual steering magnitude `>0.20`, brake, all stop, hostile target entering live sensor range, incoming damage, newly detected severe hazard on route, route invalidation, or predicted usable fuel below zero. User may explicitly resume after any interruption. Opening a pausing screen suspends but does not cancel autopilot.
 
 **Edges/failures:** unreachable targets show a reason and never consume fuel. Destination destruction cancels. A moving target is repathed at `2 Hz`; if its speed exceeds flagship maximum for `3 s`, cancel. Autopilot never automatically enters a known severe hazard. It cannot activate bombs or initiate hostility.
 
@@ -2062,6 +2064,8 @@ CI fails on a dirty diff after asset generation, a bundle chunk over `500 KiB` c
 | snapshot serialization p95 | `<=25 ms` and `<=512 KiB` |
 | memory after 30 active minutes | `<=220 MiB` desktop, `<=160 MiB` mobile |
 
+The `20 Hz` authoritative tick is decoupled from presentation. The tactical canvas receives every tick and redraws on `requestAnimationFrame`, interpolating each ship's wrapped position and heading between the previous and current tick by the fraction of `TICK_MS` elapsed, so motion is smooth at any display refresh rate without altering simulation authority. The camera follows the interpolated player position with a frame-rate-independent ease (`1 - e^(-dt/0.14s)`) and snaps rather than pans across a toroidal wrap. Reduced motion disables interpolation, camera easing, and parallax; it never changes ship physics. The HUD document rebuild stays throttled and is suppressed while a flight control is held, so it can never cost pointer capture or frames; canvas motion does not depend on it.
+
 Offscreen AI operates on the 1 Hz strategy cadence. Tactical paths outside the current sector are represented as deterministic route legs and arrival ticks, not integrated at 20 Hz. Production, construction, influence, and markets use integer accumulators. Sensor-visible ships entering the active sector instantiate tactical entities from their strategic state without changing fuel, cargo, damage, intent, or arrival outcome.
 
 ### 7.14 Security and privacy boundaries
@@ -2247,10 +2251,11 @@ Effects use normal/additive blend only. Maximum screenshake, hit-pause, camera, 
 
 #### 8.5.4 Galaxy map and HUD icon inventory
 
-Required v0 icon set, each at 32 source units: `ship`, `home`, `planet`, `shipyard`, `market`, `fuel`, `cargo`, `credits`, `ore`, `metal`, `crystal`, `exotic`, `research`, `repair`, `shield`, `armour`, `hull`, `weapon`, `bomb`, `scanner`, `mining`, `influence`, `defence`, `objective`, `timeline`, `pause`, `play`, `settings`, `zoom-in`, `zoom-out`, `center`, `route`, `wrapped-route`, `danger`, `stale-intel`, `unknown`, `discovery`, `filter`, `close`, `back`, `confirm`, `cancel`, `export`, `import`, `record`, and `tutorial`. Existing unused audio-control icons may remain in the approved source-art archive but are not included in runtime atlases or UI.
+Required v0 icon set, each at 32 source units: `ship`, `home`, `planet`, `shipyard`, `market`, `fuel`, `cargo`, `credits`, `ore`, `metal`, `crystal`, `exotic`, `research`, `repair`, `shield`, `armour`, `hull`, `weapon`, `bomb`, `scanner`, `mining`, `influence`, `defence`, `objective`, `timeline`, `pause`, `all-stop`, `play`, `settings`, `zoom-in`, `zoom-out`, `center`, `route`, `wrapped-route`, `danger`, `stale-intel`, `unknown`, `discovery`, `filter`, `close`, `back`, `confirm`, `cancel`, `export`, `import`, `record`, and `tutorial`. Existing unused audio-control icons may remain in the approved source-art archive but are not included in runtime atlases or UI.
 
 Map primitives:
 
+- flight minimap: renderer geometry, not an asset — one cell per sector, an occupied-sector outline, and a ship marker positioned by fraction of sector;
 - sector cell background: renderer geometry, not an asset;
 - grid line: renderer geometry at 1 CSS px minimum;
 - ownership pattern overlays: one 32 tile per player/neutral/rival pattern;
@@ -2500,7 +2505,7 @@ HUD elements are ordered by urgency and may collapse only from the bottom of thi
 1. **Critical survival:** hull, armour, shield, fuel/reserve state, active severe hazard, pause/lease/save-failure state.
 2. **Immediate control:** speed, throttle, heading, station lock, autopilot state/interrupt reason, selected target, weapon state/ammo.
 3. **Interaction:** contextual action, mining progress/rate/full-cargo reason, scan progress, docking/occupation channel.
-4. **Navigation:** sector coordinates, danger band, route next step, wrap indicator, route fuel forecast.
+4. **Navigation:** sector coordinates, danger band, minimap position, route next step, wrap indicator, route fuel forecast.
 5. **Economy:** cargo used/capacity, credits, carried material totals.
 6. **Strategy:** current objective, planet-count progress, research/production summary, noncritical alerts.
 
@@ -2510,9 +2515,11 @@ Fuel turns warning at forecasted home margin `<15 FU` and displays `LOW FUEL`; e
 
 The selected target card shows name/type, relation/faction pattern, distance in `wu`, health layers if known, interaction range state, and up to three legal actions. Unknown values display `Unknown`, not zero. Dynamic intel carries `LIVE`, `RECENT`, `STALE`, or `UNKNOWN` text and timestamp/age; static geography is not mislabeled stale.
 
+The flight screen carries a persistent minimap: one square cell per galaxy sector at the campaign's `width×height`, the occupied sector outlined, charted sectors filled and uncharted sectors left dim, known planets marked with their ownership colour, known hazards hatched, and a marker showing the ship's fractional position inside its sector. It is decorative to assistive technology; the same information is exposed as a text readout naming the sector, the percentage across and down the sector, and the charted-sector count. The marker tracks the ship every simulation tick even on ticks where the HUD document is not rebuilt.
+
 HUD opacity never drops below `85%` behind text. Text contrast is `≥4.5:1` normal and `≥3:1` at `≥24 px` or `≥19 px bold`; non-text controls/essential graphics are `≥3:1`. Canvas scenery behind HUD receives a stable scrim to preserve contrast.
 
-Acceptance: `UX-T-070` priority collapse matrix; `UX-T-071` health/fuel/cargo numeric semantics; `UX-T-072` critical reduced-motion substitute; `UX-T-073` autopilot reason copy; `UX-T-074` unknown versus zero; `UX-T-075` HUD contrast under brightest/darkest scene.
+Acceptance: `UX-T-070` priority collapse matrix; `UX-T-071` health/fuel/cargo numeric semantics; `UX-T-072` critical reduced-motion substitute; `UX-T-073` autopilot reason copy; `UX-T-074` unknown versus zero; `UX-T-075` HUD contrast under brightest/darkest scene; `UX-T-076` minimap reflects sector, charted fog, and live ship position.
 
 ### 9.8 Galaxy map, route sheet, fog, and strategic legibility
 

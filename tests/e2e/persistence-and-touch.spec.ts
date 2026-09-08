@@ -139,12 +139,18 @@ test('a passive tab cannot revive a campaign after its active save is sealed', a
   await passive
     .getByRole('button', { name: 'Continue — Venture Star' })
     .click();
-  await expect(
-    passive.getByRole('heading', { name: 'Venture Star', exact: true }),
-  ).toBeVisible();
+  // The sealed campaign must not come back, and the tab must fall back to home.
+  // Assert on home's own controls rather than the continue card: clearing that
+  // card is exactly what this flow does, so it is a race, not a signal.
   await expect
     .poll(() => passive.evaluate(() => window.__GAME__?.state ?? null))
     .toBeNull();
+  await expect(
+    passive.getByRole('button', { name: 'Launch campaign' }),
+  ).toBeVisible();
+  await expect(
+    passive.getByRole('button', { name: 'Continue — Venture Star' }),
+  ).toHaveCount(0);
 });
 
 test('touching a rendered entity selects it through the production canvas hit path', async ({

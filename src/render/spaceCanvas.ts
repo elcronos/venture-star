@@ -6,7 +6,8 @@ import type {
   ResourceNode,
   Ship,
 } from '../game/types';
-import { SECTOR_SIZE, SCALE } from '../game/types';
+import { SECTOR_SIZE, SCALE, TICK_MS } from '../game/types';
+import { wrap, wrappedDelta } from '../game/math';
 
 const ASSETS = {
   player: new URL('../../assets/svg/ships/player/base.svg', import.meta.url)
@@ -85,14 +86,33 @@ interface Camera {
   zoom: number;
 }
 
+/** World-space transform of a ship at a single simulation tick. */
+interface Transform {
+  x: number;
+  y: number;
+  heading: number;
+}
+
+const mod = (value: number, size: number): number =>
+  size > 0 ? ((value % size) + size) % size : 0;
+
+/** Seconds for the camera to close ~63% of the gap to the ship. */
+const CAMERA_TAU_SECONDS = 0.14;
+
 export class SpaceCanvas {
   readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
   private readonly images = new Map<AssetKey, HTMLImageElement>();
   private camera: Camera = { x: 0, y: 0, zoom: 0.72 };
   private state: GameState | null = null;
+  private previous = new Map<string, Transform>();
+  private current = new Map<string, Transform>();
+  private stateTime = 0;
+  private cameraReady = false;
   private raf = 0;
   private lastTime = 0;
+  private frames = 0;
+  private drawn: Transform | null = null;
   private readonly resizeObserver: ResizeObserver | null;
   private readonly options: SpaceCanvasOptions;
 
@@ -121,14 +141,33 @@ export class SpaceCanvas {
   }
 
   setState(state: GameState): void {
+    const sameTick = this.state?.tick === state.tick;
     this.state = state;
-    const player = state.ships.find((ship) => ship.id === state.playerShipId);
-    if (player) {
-      const smoothing = this.options.reducedMotion?.() ? 1 : 0.13;
-      this.camera.x += (player.position.x / SCALE - this.camera.x) * smoothing;
-      this.camera.y += (player.position.y / SCALE - this.camera.y) * smoothing;
+    const next = new Map<string, Transform>();
+    for (const ship of state.ships)
+      next.set(ship.id, {
+        x: ship.position.x,
+        y: ship.position.y,
+        heading: ship.heading,
+      });
+    // A repeated tick is a re-render of the same instant, not a new one, so it
+    // must not consume the interpolation window.
+    if (!sameTick) {
+      this.previous = this.current;
+      this.stateTime = performance.now();
     }
+    this.current = next;
+    if (!this.previous.size) this.previous = next;
     if (!this.raf) this.raf = requestAnimationFrame((time) => this.frame(time));
+  }
+
+  /** Presentation counters: what was actually painted, for smoothness tests. */
+  get presentation(): { frames: number; x: number; y: number } {
+    return {
+      frames: this.frames,
+      x: this.drawn?.x ?? 0,
+      y: this.drawn?.y ?? 0,
+    };
   }
 
   destroy(): void {
@@ -164,11 +203,69 @@ export class SpaceCanvas {
 
   private frame(time: number): void {
     this.raf = 0;
+    const delta = this.lastTime ? Math.min(time - this.lastTime, 250) : 0;
+    this.lastTime = time;
+    this.updateCamera(delta / 1000, this.alphaAt(time));
     this.draw(time);
-    if (this.state?.running && this.state.outcome === 'active') {
-      this.lastTime = time;
+    if (this.state?.running && this.state.outcome === 'active')
       this.raf = requestAnimationFrame((next) => this.frame(next));
+    else this.lastTime = 0;
+  }
+
+  /** Fraction of the way from the previous simulation tick to the current one. */
+  private alphaAt(time: number): number {
+    if (!this.previous.size || this.options.reducedMotion?.()) return 1;
+    return Math.max(0, Math.min(1, (time - this.stateTime) / TICK_MS));
+  }
+
+  private transformAt(id: string, alpha: number): Transform | undefined {
+    const to = this.current.get(id);
+    if (!to) return undefined;
+    const from = this.previous.get(id);
+    if (!from || alpha >= 1 || !this.state) return to;
+    const worldWidth = this.state.width * SECTOR_SIZE * SCALE;
+    const worldHeight = this.state.height * SECTOR_SIZE * SCALE;
+    return {
+      x: wrap(
+        from.x + wrappedDelta(from.x, to.x, worldWidth) * alpha,
+        worldWidth,
+      ),
+      y: wrap(
+        from.y + wrappedDelta(from.y, to.y, worldHeight) * alpha,
+        worldHeight,
+      ),
+      heading: wrap(
+        from.heading + wrappedDelta(from.heading, to.heading, 65_536) * alpha,
+        65_536,
+      ),
+    };
+  }
+
+  private updateCamera(deltaSeconds: number, alpha: number): void {
+    if (!this.state) return;
+    const player = this.transformAt(this.state.playerShipId, alpha);
+    if (!player) return;
+    const targetX = player.x / SCALE;
+    const targetY = player.y / SCALE;
+    // Snapping avoids a long pan across the map on the first frame and on wrap.
+    const worldWidth = this.state.width * SECTOR_SIZE;
+    const worldHeight = this.state.height * SECTOR_SIZE;
+    const dx = wrappedDelta(this.camera.x, targetX, worldWidth);
+    const dy = wrappedDelta(this.camera.y, targetY, worldHeight);
+    const snap =
+      !this.cameraReady ||
+      this.options.reducedMotion?.() ||
+      deltaSeconds <= 0 ||
+      Math.hypot(dx, dy) > SECTOR_SIZE / 2;
+    this.cameraReady = true;
+    if (snap) {
+      this.camera.x = targetX;
+      this.camera.y = targetY;
+      return;
     }
+    const factor = 1 - Math.exp(-deltaSeconds / CAMERA_TAU_SECONDS);
+    this.camera.x = wrap(this.camera.x + dx * factor, worldWidth);
+    this.camera.y = wrap(this.camera.y + dy * factor, worldHeight);
   }
 
   private draw(time: number): void {
@@ -189,15 +286,12 @@ export class SpaceCanvas {
       return;
     }
 
-    const player = this.state.ships.find(
-      (ship) => ship.id === this.state?.playerShipId,
-    );
-    const sectorX = player
-      ? Math.floor(player.position.x / SCALE / SECTOR_SIZE)
-      : 0;
-    const sectorY = player
-      ? Math.floor(player.position.y / SCALE / SECTOR_SIZE)
-      : 0;
+    const alpha = this.alphaAt(time);
+    const player = this.transformAt(this.state.playerShipId, alpha);
+    this.frames += 1;
+    this.drawn = player ?? null;
+    const sectorX = player ? Math.floor(player.x / SCALE / SECTOR_SIZE) : 0;
+    const sectorY = player ? Math.floor(player.y / SCALE / SECTOR_SIZE) : 0;
     const bodies = this.state.planets.filter(
       (body) => body.sectorX === sectorX && body.sectorY === sectorY,
     );
@@ -223,12 +317,14 @@ export class SpaceCanvas {
       this.drawDiscovery(ctx, discovery, time);
     for (const ship of this.state.ships) {
       if (ship.destroyed) continue;
+      const transform = this.transformAt(ship.id, alpha);
+      if (!transform) continue;
       if (
-        Math.floor(ship.position.x / SCALE / SECTOR_SIZE) !== sectorX ||
-        Math.floor(ship.position.y / SCALE / SECTOR_SIZE) !== sectorY
+        Math.floor(transform.x / SCALE / SECTOR_SIZE) !== sectorX ||
+        Math.floor(transform.y / SCALE / SECTOR_SIZE) !== sectorY
       )
         continue;
-      this.drawShip(ctx, ship, ship.id === this.state.playerShipId);
+      this.drawShip(ctx, ship, transform, ship.id === this.state.playerShipId);
     }
     ctx.restore();
   }
@@ -236,8 +332,13 @@ export class SpaceCanvas {
   private drawStars(width: number, height: number): void {
     const ctx = this.context;
     for (let index = 0; index < 96; index += 1) {
-      const x = (index * 83 + 19) % width;
-      const y = (index * 47 + 31) % height;
+      // Two depths of parallax turn the starfield into the motion cue that a
+      // camera locked to the ship cannot provide on its own.
+      const depth = index % 3 === 0 ? 0.06 : 0.16;
+      const offsetX = this.camera.x * this.camera.zoom * depth;
+      const offsetY = this.camera.y * this.camera.zoom * depth;
+      const x = mod(index * 83 + 19 - offsetX, width);
+      const y = mod(index * 47 + 31 - offsetY, height);
       const alpha = 0.18 + ((index * 17) % 50) / 100;
       ctx.fillStyle = `rgba(216,234,242,${alpha})`;
       ctx.fillRect(x, y, index % 9 === 0 ? 2 : 1, index % 9 === 0 ? 2 : 1);
@@ -337,6 +438,7 @@ export class SpaceCanvas {
   private drawShip(
     ctx: CanvasRenderingContext2D,
     ship: Ship,
+    transform: Transform,
     player: boolean,
   ): void {
     const moving = Math.abs(ship.velocity.x) + Math.abs(ship.velocity.y) > 1000;
@@ -349,11 +451,11 @@ export class SpaceCanvas {
       : moving
         ? 'rivalThrust'
         : 'rival';
-    const x = ship.position.x / SCALE;
-    const y = ship.position.y / SCALE;
+    const x = transform.x / SCALE;
+    const y = transform.y / SCALE;
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate((ship.heading / 65536) * Math.PI * 2 + Math.PI / 2);
+    ctx.rotate((transform.heading / 65536) * Math.PI * 2 + Math.PI / 2);
     this.image(
       ctx,
       this.images.get(key),
