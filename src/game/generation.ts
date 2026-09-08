@@ -26,6 +26,9 @@ import {
 /** Chance a sector away from home carries at least one deposit, in basis points. */
 const SECTOR_HAS_NODES_BP = 6_500;
 
+/** Integrity of a planet's single orbital battery. */
+export const DEFENCE_HULL = 100;
+
 const MATERIALS: Material[] = ['ore', 'metal', 'crystal', 'exotic'];
 const BASE_PRICES: Record<Material, number> = {
   ore: 10,
@@ -230,6 +233,12 @@ function makePlanet(
     hasShipyard: index <= rivals,
     serviceLockUntilTick: 0,
     outputBasisPoints: 10_000,
+    defence: {
+      hull: DEFENCE_HULL,
+      readyTick: 0,
+      provokedBy: null,
+      provokedUntilTick: 0,
+    },
     market: {
       stock: {
         ore: index === 0 ? 120 : rng.int(20, 80),

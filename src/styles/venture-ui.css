@@ -124,6 +124,8 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
 .vs-minimap__open:hover .vs-minimap__grid, .vs-minimap__open:focus-visible .vs-minimap__grid { border-color: var(--vs-teal); }
 .vs-pause-objective { grid-column: 1 / -1; display: flex; align-items: center; gap: .5rem; }
 .vs-meter--deposit .vs-meter__fill { background: var(--vs-ore); }
+.vs-meter--defence .vs-meter__fill { background: var(--vs-coral); }
+.vs-meter--influence .vs-meter__fill { background: var(--vs-teal); }
 /* Remaining yield stays visible where the health block collapses on mobile. */
 .vs-target__deposit { display: block; }
 .vs-target__trade { display: flex; align-items: center; gap: .4rem; margin: .5rem 0 0; color: var(--vs-teal); font-size: .85rem; }

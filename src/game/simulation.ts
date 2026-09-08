@@ -24,7 +24,11 @@ import {
   type Ship,
   type UpgradeFamily,
 } from './types';
-import { z } from 'zod';
+import {
+  deserializeGame,
+  serializeGame,
+  validateRestoredState,
+} from './persistence';
 
 /**
  * Refit price multiplier. A yard fits modules at cost; an ordinary port has to
@@ -47,6 +51,18 @@ export const DOCK_SPEED_MILLI = 20 * SCALE;
 export const MINING_SPEED_MILLI = 8 * SCALE;
 export const MINING_THROTTLE_MAX_BP = 1_500;
 const WEAPON_RANGE_MILLI = 300 * SCALE;
+/** One orbital battery per world: reach, bite, and rate of fire. */
+const DEFENCE_RANGE_MILLI = 450 * SCALE;
+const DEFENCE_HULL = 100;
+const DEFENCE_DAMAGE = 15;
+const DEFENCE_COOLDOWN_TICKS = 24;
+/**
+ * Resolve broken per bomb that lands after shields are down. Force is meant to
+ * be the fast route and the dangerous one, against a world that shoots back.
+ */
+const BOMB_RESOLVE_DAMAGE = 50;
+/** How long a neutral world keeps shooting back at whoever attacked it. */
+const PROVOKED_TICKS = 60 * TICKS_PER_SECOND;
 export const BOMB_RANGE_MILLI = 260 * SCALE;
 const MAX_SPEED_MILLI = 220 * SCALE;
 const EMERGENCY_SPEED_MILLI = 55 * SCALE;
@@ -82,6 +98,12 @@ export const UPGRADE_COSTS: Record<
     2: { credits: 950, cargo: { crystal: 9, metal: 5 } },
   },
 };
+
+export {
+  canonicalStringify,
+  deserializeGame,
+  serializeGame,
+} from './persistence';
 
 export class GameEngine {
   private state: GameState;
@@ -144,6 +166,7 @@ export class GameEngine {
     this.runMining();
     this.collectDiscoveries();
     this.runWeapons();
+    this.runPlanetDefence();
     this.runBombs();
     this.rechargeShields();
     if (this.state.tick % TICKS_PER_SECOND === 0) this.strategyTick();
@@ -504,6 +527,79 @@ export class GameEngine {
     }
   }
 
+  /** A world remembers who shot it, and shoots back for a while. */
+  private provoke(planet: Planet, faction: FactionId): void {
+    if (planet.owner === faction) return;
+    planet.defence ??= {
+      hull: DEFENCE_HULL,
+      readyTick: 0,
+      provokedBy: null,
+      provokedUntilTick: 0,
+    };
+    planet.defence.provokedBy = faction;
+    planet.defence.provokedUntilTick = this.state.tick + PROVOKED_TICKS;
+  }
+
+  /**
+   * Orbital defence: one battery per world. An owned world fires at anyone
+   * hostile to its owner; a neutral world fires only at whoever attacked it,
+   * which is what makes taking a planet by force a fight rather than an errand.
+   */
+  private runPlanetDefence(): void {
+    for (const planet of this.state.planets) {
+      const defence = planet.defence;
+      if (!defence || defence.hull <= 0) continue;
+      if (this.state.tick < defence.readyTick) continue;
+      const provoked =
+        defence.provokedBy && this.state.tick < defence.provokedUntilTick
+          ? defence.provokedBy
+          : null;
+      const target = this.state.ships
+        .filter((ship) => {
+          if (ship.destroyed || ship.dockedPlanetId) return false;
+          if (planet.owner === ship.faction) return false;
+          const eligible = planet.owner
+            ? isHostile(this.state, planet.owner, ship.faction)
+            : provoked === ship.faction;
+          if (!eligible) return false;
+          return (
+            wrappedDistanceSquared(
+              ship.position,
+              planet.position,
+              this.state.width,
+              this.state.height,
+            ) <=
+            DEFENCE_RANGE_MILLI ** 2
+          );
+        })
+        // Whoever is closest is the one in the battery's best firing solution.
+        .sort(
+          (a, b) =>
+            wrappedDistanceSquared(
+              a.position,
+              planet.position,
+              this.state.width,
+              this.state.height,
+            ) -
+              wrappedDistanceSquared(
+                b.position,
+                planet.position,
+                this.state.width,
+                this.state.height,
+              ) || a.id.localeCompare(b.id),
+        )[0];
+      if (!target) continue;
+      defence.readyTick = this.state.tick + DEFENCE_COOLDOWN_TICKS;
+      this.damageShip(target, DEFENCE_DAMAGE, 'energy', planet.id);
+      this.event(
+        'PLANET_DEFENCE',
+        `${planet.name} battery fired on ${target.id}`,
+        [planet.id, target.id],
+        target.id,
+      );
+    }
+  }
+
   private runWeapons(): void {
     for (const ship of this.state.ships.sort((a, b) =>
       a.id.localeCompare(b.id),
@@ -552,11 +648,13 @@ export class GameEngine {
           'kinetic',
           ship.id,
         );
-      else
+      else {
         targetPlanet!.shield = Math.max(
           0,
           targetPlanet!.shield - ship.stats.weaponDamage,
         );
+        this.provoke(targetPlanet!, ship.faction);
+      }
       this.event(
         'WEAPON_FIRED',
         `${ship.id} fired`,
@@ -582,9 +680,10 @@ export class GameEngine {
       if (source && shipTarget)
         this.damageShip(shipTarget, 50, 'explosive', source.id);
       if (source && planet) {
+        this.provoke(planet, source.faction);
         if (planet.shield > 0) planet.shield = Math.max(0, planet.shield - 50);
         else {
-          planet.resolve = Math.max(0, planet.resolve - 34);
+          planet.resolve = Math.max(0, planet.resolve - BOMB_RESOLVE_DAMAGE);
           if (planet.resolve === 0)
             this.capturePlanet(planet, source.faction, 'force');
         }
@@ -611,7 +710,25 @@ export class GameEngine {
       }
   }
 
+  /**
+   * A rival regards an armed player inside its home sector as a threat. Drifting
+   * through on emergency reserve is not armed, and neither is holding fire.
+   */
+  private checkTerritorialProvocation(): void {
+    const player = playerShip(this.state);
+    if (player.destroyed || player.emergency || player.holdFire) return;
+    const sectorX = Math.floor(player.position.x / (SECTOR_SIZE * SCALE));
+    const sectorY = Math.floor(player.position.y / (SECTOR_SIZE * SCALE));
+    for (const planet of this.state.planets) {
+      if (!planet.owner || planet.owner === 'player') continue;
+      if (!planet.hasShipyard) continue;
+      if (planet.sectorX !== sectorX || planet.sectorY !== sectorY) continue;
+      declareHostile(this.state, 'player', planet.owner);
+    }
+  }
+
   private strategyTick(): void {
+    this.checkTerritorialProvocation();
     if (this.state.tick % 600 === 0) this.producePlanets();
     for (const faction of this.state.factions.sort((a, b) =>
       a.id.localeCompare(b.id),
@@ -1019,6 +1136,17 @@ export class GameEngine {
     owner: FactionId,
     method: 'peaceful' | 'force',
   ): void {
+    // Taking a world a rival was courting is an act of competition, and they
+    // treat it as one. Conflict then arises from the map rather than only from
+    // the player choosing to start it.
+    for (const [faction, influence] of Object.entries(planet.influence))
+      if (
+        influence > 0 &&
+        faction !== owner &&
+        faction.startsWith('rival-') &&
+        owner === 'player'
+      )
+        declareHostile(this.state, 'player', faction as FactionId);
     planet.owner = owner;
     planet.acquisition = method;
     planet.influence = {};
@@ -1182,146 +1310,6 @@ export class GameEngine {
   }
 }
 
-export function serializeGame(state: GameState): string {
-  return canonicalStringify(state);
-}
-
-export function deserializeGame(serialized: string): GameState {
-  const value: unknown = JSON.parse(serialized);
-  return validateRestoredState(value);
-}
-
-const restoredStateSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    rulesVersion: z.literal('1.0.0'),
-    generatorVersion: z.union([z.literal(1), z.literal(2)]),
-    campaignId: z.string().min(1),
-    seed: z.string().min(1),
-    width: z.number().int().min(10).max(30),
-    height: z.number().int().min(10).max(30),
-    difficulty: z.enum(['Explorer', 'Captain', 'Strategist']),
-    tick: z.number().int().nonnegative(),
-    running: z.boolean(),
-    launched: z.boolean(),
-    outcome: z.enum(['active', 'victory', 'defeat']),
-    sealedAtTick: z.number().int().nonnegative().nullable(),
-    commandSequence: z.number().int().nonnegative(),
-    playerShipId: z.string().min(1),
-    planets: z
-      .array(
-        z
-          .object({
-            id: z.string(),
-            owner: z.union([
-              z.literal('player'),
-              z.string().regex(/^rival-\d+$/),
-              z.null(),
-            ]),
-            position: z.object({
-              x: z.number().finite(),
-              y: z.number().finite(),
-            }),
-          })
-          .passthrough(),
-      )
-      .min(1),
-    ships: z
-      .array(
-        z
-          .object({
-            id: z.string(),
-            faction: z.union([
-              z.literal('player'),
-              z.string().regex(/^rival-\d+$/),
-            ]),
-            position: z.object({
-              x: z.number().finite(),
-              y: z.number().finite(),
-            }),
-            hull: z.number().finite(),
-            destroyed: z.boolean(),
-          })
-          .passthrough(),
-      )
-      .min(1),
-    nodes: z.array(
-      z
-        .object({
-          id: z.string(),
-          remaining: z.number().finite(),
-          position: z.object({
-            x: z.number().finite(),
-            y: z.number().finite(),
-          }),
-        })
-        .passthrough(),
-    ),
-    discoveries: z.array(
-      z.object({ id: z.string(), claimed: z.boolean() }).passthrough(),
-    ),
-    hazards: z.array(
-      z.object({ id: z.string(), radius: z.number().positive() }).passthrough(),
-    ),
-    factions: z.array(z.object({ id: z.string() }).passthrough()),
-    bombs: z.array(
-      z.object({ id: z.string(), impactTick: z.number().int() }).passthrough(),
-    ),
-    events: z.array(
-      z
-        .object({ id: z.string(), tick: z.number().int(), type: z.string() })
-        .passthrough(),
-    ),
-    stats: z
-      .object({
-        fuelConsumedHundredths: z.number().finite(),
-        distanceMilli: z.number().finite(),
-        tradeProfit: z.number().finite(),
-        discoveries: z.number().finite(),
-        shipsDestroyed: z.number().finite(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
-
-function validateRestoredState(state: unknown): GameState {
-  const copy = structuredClone(
-    restoredStateSchema.parse(state),
-  ) as unknown as GameState;
-  if (
-    copy.schemaVersion !== 1 ||
-    copy.rulesVersion !== '1.0.0' ||
-    !Array.isArray(copy.planets) ||
-    !Array.isArray(copy.ships) ||
-    copy.planets.length === 0
-  )
-    throw new Error('Unsupported or malformed game state');
-  if (
-    !copy.ships.some(
-      (ship) => ship.id === copy.playerShipId && ship.faction === 'player',
-    )
-  )
-    throw new Error('Malformed player ship reference');
-  if (copy.outcome !== 'active') copy.running = false;
-  return copy;
-}
-
-export function canonicalStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    if (typeof value === 'number' && !Number.isFinite(value))
-      throw new Error('Cannot serialize non-finite number');
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value))
-    return `[${value.map(canonicalStringify).join(',')}]`;
-  return `{${Object.keys(value as object)
-    .sort()
-    .map(
-      (key) =>
-        `${JSON.stringify(key)}:${canonicalStringify((value as Record<string, unknown>)[key])}`,
-    )
-    .join(',')}}`;
-}
 
 function recalculateStats(ship: Ship): void {
   const stats = baseStats();

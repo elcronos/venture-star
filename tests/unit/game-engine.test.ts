@@ -90,6 +90,65 @@ describe('GameEngine command simulation', () => {
     expect(topped.snapshot().ships[0]!.credits).toBe(500);
   });
 
+  // M20 (simplified): one battery per world. A neutral world is not a free
+  // target - it fires back at whoever attacked it, which is what makes taking
+  // a planet by force a fight rather than an errand.
+  it('returns fire from a neutral world only after that world is attacked', () => {
+    const state = createGame({ seed: SEED });
+    const planet = state.planets.find((item) => item.owner === null)!;
+    const ship = state.ships[0]!;
+    state.launched = true;
+    state.running = true;
+    ship.dockedPlanetId = null;
+    ship.position = { ...planet.position };
+    ship.bombs = 1;
+    const engine = new GameEngine(state);
+
+    // Sitting in range of a world you have not touched draws no fire.
+    engine.stepTicks(60);
+    expect(engine.snapshot().ships[0]!.shield).toBe(
+      engine.snapshot().ships[0]!.stats.maxShield,
+    );
+
+    engine.dispatch({ type: 'activateBomb', targetId: planet.id, confirmNeutral: true });
+    engine.stepTicks(60);
+    const after = engine.snapshot().ships[0]!;
+    expect(after.shield).toBeLessThan(after.stats.maxShield);
+    expect(
+      engine.snapshot().events.some((event) => event.type === 'PLANET_DEFENCE'),
+    ).toBe(true);
+  });
+
+  it('turns a rival hostile when the player takes a world it was courting', () => {
+    const state = createGame({ seed: SEED });
+    const planet = state.planets.find((item) => item.owner === null)!;
+    const ship = state.ships[0]!;
+    state.launched = true;
+    ship.dockedPlanetId = planet.id;
+    ship.position = { ...planet.position };
+    ship.credits = 5_000;
+    ship.cargo.ore = 40;
+    // A rival already has a stake in this world.
+    planet.influence['rival-1'] = 40;
+    planet.resistance = 18;
+    const engine = new GameEngine(state);
+    expect(
+      engine.snapshot().factions.find((f) => f.id === 'rival-1')!
+        .relationToPlayer,
+    ).toBe('peace');
+
+    engine.dispatch({ type: 'influence', planetId: planet.id, action: 'trade' });
+    engine.stepTicks(2);
+
+    expect(
+      engine.snapshot().planets.find((item) => item.id === planet.id)!.owner,
+    ).toBe('player');
+    expect(
+      engine.snapshot().factions.find((f) => f.id === 'rival-1')!
+        .relationToPlayer,
+    ).toBe('hostile');
+  });
+
   it('mines finite cargo without consuming a node beyond hold capacity', () => {
     const state = createGame({ seed: SEED });
     const ship = state.ships[0]!;

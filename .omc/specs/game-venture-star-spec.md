@@ -985,6 +985,8 @@ Roles in v0.1 cost `150 cr + 4 metal`, take `45 s` active simulation to establis
 
 **Effect:** v0 peaceful control preserves stock and `100%` baseline output. v0 forceful control applies a `15 s` service lock and starts at `60%` output, repairing linearly to `100%` over `120 s` while supplied; it does not destroy infrastructure levels. v0.1 peaceful conversion preserves infrastructure/stock, and federation integration follows M23 and §3.8.
 
+**Competition creates hostility.** A rival turns hostile when the player takes a world that rival had any influence on, and when the player is inside a rival home sector armed — not on emergency reserve, not holding fire. Conflict then arises from the map rather than only from the player choosing to bomb someone, while a player who never competes is never forced into a war.
+
 **State transition:** peaceful `UNALIGNED → INFLUENCED → OWNED`; forceful `DEFENDED → SHIELDS_DOWN → RESOLVE_BROKEN → OWNED_REPAIRING → OWNED`. v0.1 adds `CONTESTED → ALIGNED → CONVERTING` and federation states.
 
 **Edges/failures:** repetitive buy/sell cannot farm influence: one contract counts per distinct demand and the atomic market spread remains. A forceful capture cannot use services during the 15-second lock. AI uses identical action costs/cooldowns. No v0 path invokes v0.1 infrastructure-level destruction, orbital defence, trust, or federation.
@@ -1007,7 +1009,13 @@ Roles in v0.1 cost `150 cr + 4 metal`, take `45 s` active simulation to establis
 
 **Tests:** `T-M19-001` shield/defence overflow; `T-M19-002` recharge; `T-M19-003` infrastructure deterministic damage; `T-M19-004` occupation gates/interruption; `T-M19-005` transfer downtime; `T-M19-006` planet indestructibility.
 
-### M20 — Orbital defence [v0.1]
+### M20 — Orbital defence [v0 single battery; full battery lines v0.1]
+
+**v0 implemented rule.** Every world mounts exactly one battery: `100` battery hull, `450 wu` range, `15` energy damage, `1.2 s` cooldown. An owned world fires at any ship hostile to its owner. A neutral world fires only at the faction that attacked it, for `60 s` after the last attack, so a world the player has not touched is never the aggressor. The battery selects the nearest eligible hostile, ties broken by ship id, and never fires at a docked ship or at its own owner. Battery integrity is shown on the target card. Without this a planetary assault is one-sided and free, which makes force strictly better than persuasion.
+
+**Bomb resolve damage is `50`**, not `34`: force is meant to be the fast route and the dangerous one, taken against a world that shoots back.
+
+### M20 — Orbital defence, full battery lines [v0.1]
 
 **Inputs:** owner stock, defence level, hostile within range, construction queue.
 

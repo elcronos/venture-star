@@ -107,6 +107,11 @@ function targetCard(flight: FlightState): HTMLElement | null {
             el('span', { text: target.trade }),
           ])
         : null,
+      target.defence
+        ? el('div', { className: 'vs-target__deposit' }, [
+            meter(target.defence, 'weapon', 'vs-meter--defence'),
+          ])
+        : null,
       target.deposit
         ? el('div', { className: 'vs-target__deposit' }, [
             meter(target.deposit, 'mining', 'vs-meter--deposit'),

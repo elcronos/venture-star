@@ -45,6 +45,8 @@ export interface TargetState {
   hull?: MeterState;
   /** Remaining yield of a resource deposit, against what it held when found. */
   deposit?: MeterState;
+  /** Integrity of this world's orbital battery, when it still mounts one. */
+  defence?: MeterState;
   /** What this planet's market pays, so selling can be judged before flying. */
   trade?: string;
   actions: ContextAction[];

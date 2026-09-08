@@ -33,6 +33,16 @@ export interface Market {
   fuel: number;
 }
 
+/** A single orbital battery. Absent in saves written before planets defended. */
+export interface PlanetDefence {
+  /** Battery integrity; at zero the planet stops firing until repaired. */
+  hull: number;
+  readyTick: number;
+  /** A neutral world fires only at whoever shot first. */
+  provokedBy: FactionId | null;
+  provokedUntilTick: number;
+}
+
 export interface Planet {
   id: string;
   name: string;
@@ -50,6 +60,7 @@ export interface Planet {
   hasShipyard: boolean;
   serviceLockUntilTick: number;
   outputBasisPoints: number;
+  defence?: PlanetDefence;
   market: Market;
 }
 
