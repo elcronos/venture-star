@@ -1,6 +1,7 @@
 import './styles/index.css';
 import {
   GameEngine,
+  refitMultiplier,
   type CampaignOptions,
   type GameCommand,
   type GameState,
@@ -25,6 +26,7 @@ import {
 import { installTestHook } from './devHook';
 import { VentureStore } from './persistence/store';
 import { SpaceCanvas } from './render/spaceCanvas';
+import { influenceActions, moduleCard } from './ui/dockOffers';
 import { emptyUiState as buildEmptyUiState } from './ui/emptyState';
 import { minimapState, syncMinimapMarker } from './ui/components/minimap';
 import {
@@ -666,7 +668,13 @@ function fitModule(moduleId: string): void {
 }
 
 function useDockService(
-  service: 'refuel' | 'repair' | 'buy-bomb' | 'influence',
+  service:
+    | 'refuel'
+    | 'repair'
+    | 'buy-bomb'
+    | 'influence-trade'
+    | 'influence-aid'
+    | 'influence-broadcast',
   amount?: number,
 ): void {
   if (!engine) return;
@@ -678,7 +686,15 @@ function useDockService(
   else if (service === 'repair') send({ type: 'repair', planetId });
   else if (service === 'buy-bomb')
     send({ type: 'buyBomb', planetId, quantity: 1 });
-  else send({ type: 'influence', planetId, action: 'aid' });
+  else
+    send({
+      type: 'influence',
+      planetId,
+      action: service.slice('influence-'.length) as
+        | 'trade'
+        | 'aid'
+        | 'broadcast',
+    });
   flush();
 }
 
@@ -724,6 +740,10 @@ function scanSector(): void {
     );
   send({ type: 'scan' });
   flush();
+  // A scan that finds something selects it, so the follow-up action is one tap
+  // away rather than a hunt through the contacts list.
+  const found = playerShip(engine.snapshot()).selectedTargetId;
+  if (found) selectedId = found;
   render();
 }
 
@@ -975,10 +995,8 @@ function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
     planetName: planet.name,
     owner: relation(planet.owner),
     activeTab: dockTab,
-    availableTabs:
-      planet.owner === 'player'
-        ? ['overview', 'market', 'shipyard']
-        : ['overview', 'market'],
+    // Refit is available wherever the player can dock; the price says where.
+    availableTabs: ['overview', 'market', 'shipyard'],
     credits: ship.credits,
     cargo: meter(cargoUsed(ship.cargo), ship.stats.cargoCapacity, 'Cargo'),
     fuel: meter(ship.fuelHundredths / 100, ship.stats.fuelCapacity, 'Fuel'),
@@ -988,8 +1006,10 @@ function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
       ? {
           influence: planet.influence.player ?? 0,
           resistance: planet.resistance,
+          influenceActions: influenceActions(state, ship, planet),
         }
       : {}),
+    refitMultiplier: refitMultiplier(planet),
     fuelOffer: {
       ...fuelQuote(state, ship, planet),
       quantity: Math.max(1, marketQuantities['fuel'] ?? 10),
@@ -1008,20 +1028,9 @@ function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
       maxQuantity: 99,
     })),
     modules: modules.flatMap((module) =>
-      ([1, 2] as const).map((tier) => ({
-        id: `${module.family}:${tier}`,
-        name: `${module.name} T${tier}`,
-        family: module.family,
-        tier,
-        price: tier === 1 ? 350 : 850,
-        installed: ship.upgrades[module.family] === tier,
-        statLabel: 'Performance',
-        before: tier === 1 ? 'Standard' : 'Tier I',
-        after: `Tier ${tier}`,
-        ...(!planet.hasShipyard
-          ? { disabledReason: 'No functioning shipyard' }
-          : {}),
-      })),
+      ([1, 2] as const).map((tier) =>
+        moduleCard(ship, planet, module.family, module.name, tier),
+      ),
     ),
   };
 }

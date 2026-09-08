@@ -330,6 +330,9 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
   const criticalAlert = flight.alerts.find(
     (alert) => alert.severity === 'critical',
   );
+  // Without this, an info-level event (a scan result, a claimed discovery)
+  // existed only in the Timeline, so the player never saw it happen.
+  const notice = criticalAlert ? undefined : flight.alerts[0];
   return el(
     'main',
     { className: 'vs-hud', attrs: { 'aria-labelledby': 'flight-title' } },
@@ -402,6 +405,23 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
             'div',
             { className: 'vs-critical-banner', attrs: { role: 'alert' } },
             [icon('danger'), el('strong', { text: criticalAlert.message })],
+          )
+        : null,
+      notice
+        ? el(
+            'div',
+            {
+              className: `vs-notice severity-${notice.severity}`,
+              attrs: { role: 'status' },
+            },
+            [
+              icon(notice.severity === 'major' ? 'objective' : 'timeline'),
+              el('span', { text: notice.message }),
+              el('span', {
+                className: 'vs-notice__time',
+                text: notice.simulationTime,
+              }),
+            ],
           )
         : null,
       el(

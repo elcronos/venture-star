@@ -195,6 +195,10 @@ export interface DockState {
   bombs: number;
   influence?: number;
   resistance?: number;
+  /** The peaceful acquisition actions this port will accept right now. */
+  influenceActions?: ContextAction[];
+  /** Multiplier applied to refit prices at this port. */
+  refitMultiplier?: number;
   market: MarketRow[];
   fuelOffer: FuelOffer;
   modules: ModuleCard[];
@@ -337,7 +341,13 @@ export type UiAction =
   | { type: 'fit-module'; moduleId: string }
   | {
       type: 'dock-service';
-      service: 'refuel' | 'repair' | 'buy-bomb' | 'influence';
+      service:
+        | 'refuel'
+        | 'repair'
+        | 'buy-bomb'
+        | 'influence-trade'
+        | 'influence-aid'
+        | 'influence-broadcast';
       amount?: number;
     }
   | { type: 'select-record'; recordId: string }

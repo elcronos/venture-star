@@ -90,20 +90,68 @@ function overview(state: UiState, dispatch: UiDispatch): HTMLElement {
             },
           ),
         ]),
-        ...(dock.owner === 'neutral'
+        ...(dock.owner === 'neutral' && dock.influenceActions
           ? [
               el('h3', { text: 'Peaceful acquisition' }),
               el('p', {
-                text: `Influence ${dock.influence ?? 0}/${dock.resistance ?? 100}. Aid costs 80 credits and 2 ore.`,
+                text: `This world answers to nobody. Win it by argument rather than by bombs: reach ${dock.resistance ?? 100} influence and it joins you. Each action can be repeated as its own rules allow.`,
               }),
-              button(
-                'Provide aid',
-                () => dispatch({ type: 'dock-service', service: 'influence' }),
-                { icon: 'research', className: 'vs-button--primary' },
+              influenceMeter(dock.influence ?? 0, dock.resistance ?? 100),
+              el(
+                'div',
+                { className: 'vs-action-row vs-influence-actions' },
+                dock.influenceActions.map((action) =>
+                  button(
+                    action.label,
+                    () =>
+                      dispatch({
+                        type: 'dock-service',
+                        service: action.id as 'influence-aid',
+                      }),
+                    {
+                      icon: action.icon,
+                      disabledReason: action.disabledReason,
+                      className: 'vs-button--compact',
+                    },
+                  ),
+                ),
               ),
             ]
           : []),
       ]),
+    ],
+  );
+}
+
+/** Progress toward owning a neutral world by persuasion rather than force. */
+function influenceMeter(current: number, max: number): HTMLElement {
+  const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  return el(
+    'div',
+    {
+      className: 'vs-meter vs-meter--influence',
+      attrs: {
+        role: 'meter',
+        'aria-label': 'Influence',
+        'aria-valuemin': 0,
+        'aria-valuemax': max,
+        'aria-valuenow': current,
+      },
+    },
+    [
+      icon('research'),
+      el('span', { className: 'vs-meter__label', text: 'Influence' }),
+      el(
+        'span',
+        { className: 'vs-meter__track', attrs: { 'aria-hidden': 'true' } },
+        [
+          el('span', {
+            className: 'vs-meter__fill',
+            attrs: { style: `--meter-value:${ratio}` },
+          }),
+        ],
+      ),
+      el('span', { className: 'vs-meter__value', text: `${current}/${max}` }),
     ],
   );
 }

@@ -26,6 +26,15 @@ import {
 } from './types';
 import { z } from 'zod';
 
+/**
+ * Refit price multiplier. A yard fits modules at cost; an ordinary port has to
+ * improvise, and a neutral one has no reason to do it cheaply.
+ */
+export function refitMultiplier(planet: Planet): number {
+  if (planet.owner === 'player') return planet.hasShipyard ? 1 : 1.35;
+  return planet.hasShipyard ? 1.5 : 1.9;
+}
+
 /** Credits per fuel unit: friendly supply is subsidised, neutral is not. */
 export function fuelRate(planet: Planet): number {
   return planet.owner === 'player' ? 1 : 3;
@@ -44,7 +53,7 @@ const EMERGENCY_SPEED_MILLI = 55 * SCALE;
 const ACCEL_MILLI_PER_SECOND = 92 * SCALE;
 const BRAKE_MILLI_PER_SECOND = 150 * SCALE;
 
-const UPGRADE_COSTS: Record<
+export const UPGRADE_COSTS: Record<
   UpgradeFamily,
   Record<1 | 2, { credits: number; cargo: Partial<Record<Material, number>> }>
 > = {
@@ -379,11 +388,35 @@ export class GameEngine {
             (ship.stats.sensorRange * 2 * SCALE) ** 2,
       )
       .sort((a, b) => a.id.localeCompare(b.id))[0];
+    // The result has to name a bearing and a distance: a scan that only says
+    // "found something" gives the player nothing to act on.
+    if (discovery) {
+      const dx = wrappedDelta(
+        ship.position.x,
+        discovery.position.x,
+        this.state.width * SECTOR_SIZE * SCALE,
+      );
+      const dy = wrappedDelta(
+        ship.position.y,
+        discovery.position.y,
+        this.state.height * SECTOR_SIZE * SCALE,
+      );
+      const bearing = Math.round(
+        ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360,
+      );
+      this.event(
+        'SCAN_PULSE',
+        `Scan: ${discovery.kind.replaceAll('-', ' ')} at ${Math.round(Math.hypot(dx, dy) / SCALE)} wu, bearing ${bearing}°`,
+        [ship.id, discovery.id],
+        discovery.id,
+      );
+      ship.selectedTargetId = discovery.id;
+      return;
+    }
     this.event(
       'SCAN_PULSE',
-      discovery ? `Scan found ${discovery.kind}` : 'Scan found no anomaly',
-      [ship.id, ...(discovery ? [discovery.id] : [])],
-      discovery?.id,
+      `Scan: nothing within ${ship.stats.sensorRange * 2} wu`,
+      [ship.id],
     );
   }
 
@@ -826,8 +859,12 @@ export class GameEngine {
     tier: 1 | 2,
   ): void {
     const planet = dockedAt(this.state, ship, planetId);
-    if (!planet || planet.owner !== 'player' || !planet.hasShipyard) return;
-    const cost = UPGRADE_COSTS[family][tier];
+    if (!planet || (planet.owner !== 'player' && planet.owner !== null)) return;
+    const base = UPGRADE_COSTS[family][tier];
+    const cost = {
+      ...base,
+      credits: Math.round(base.credits * refitMultiplier(planet)),
+    };
     if (
       ship.credits < cost.credits ||
       Object.entries(cost.cargo).some(

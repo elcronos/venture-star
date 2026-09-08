@@ -901,7 +901,9 @@ where `scarcity=clamp((targetStock-stock)/max(1,targetStock),-0.6,1)`, `control�
 
 **Edges/failures:** reject a full slot set, duplicate family, unavailable stock, unmet research, duplicate unique artifacts, removal that leaves zero sensor or cargo capability, capacity-breaking hold removal, or tank-breaking cell removal under M05. Acquired planets never confiscate fitted gear.
 
-**Tests:** `T-M12-001` slot compatibility; `T-M12-002` stat order/caps; `T-M12-003` six v0 bonuses; `T-M12-004` atomic failed swap; `T-M12-005` research/stock gate; `T-M12-006` no durability decay.
+**Refit is available wherever the player may dock**, priced by the port rather than gated by it: a home yard fits at cost, a home port without a yard at `1.35×`, a neutral yard at `1.5×`, and an ordinary neutral port at `1.9×`. Restricting refit to a single owned yard leaves the upgrade tree effectively unreachable for most of a run. Every module names the stat it changes and its before/after value, never a bare tier number, and states the credits or materials it still needs.
+
+**Tests:** `T-M12-007` refit offered at a neutral port at a higher price, with stat effects named; `T-M12-001` slot compatibility; `T-M12-002` stat order/caps; `T-M12-003` six v0 bonuses; `T-M12-004` atomic failed swap; `T-M12-005` research/stock gate; `T-M12-006` no durability decay.
 
 ### M13 — Tactical targeting and hostility [v0]
 
@@ -987,7 +989,9 @@ Roles in v0.1 cost `150 cr + 4 metal`, take `45 s` active simulation to establis
 
 **Edges/failures:** repetitive buy/sell cannot farm influence: one contract counts per distinct demand and the atomic market spread remains. A forceful capture cannot use services during the 15-second lock. AI uses identical action costs/cooldowns. No v0 path invokes v0.1 infrastructure-level destruction, orbital defence, trust, or federation.
 
-**Tests:** `T-M18-001` v0 conversion; `T-M18-002` trade anti-farm cap; `T-M18-003` contested threshold/hold; `T-M18-004` hostility reset; `T-M18-005` preserved infrastructure; `T-M18-006` AI cost parity; `T-M18-007` federation eligibility.
+**All three actions must be reachable.** Trade contract, development aid and broadcast are the whole peaceful path; exposing only one of them leaves the player believing bombs are the only way to take a world, which is the opposite of the intended design. Each states its cost and gain on the control, and names the rule refusing it — one contract per port, the broadcast cooldown, missing credits or ore.
+
+**Tests:** `T-M18-001` v0 conversion; `T-M18-002` trade anti-farm cap; `T-M18-008` all three actions reachable and the contract refusing a second signature; `T-M18-003` contested threshold/hold; `T-M18-004` hostility reset; `T-M18-005` preserved infrastructure; `T-M18-006` AI cost parity; `T-M18-007` federation eligibility.
 
 ### M19 — Planetary shields, bombardment, and infrastructure damage [v0.1]
 
@@ -1102,6 +1106,8 @@ Artifact effects are unique, explicit, and capped: `Helios Lens +120 sensor`, `V
 **State transition:** `HIDDEN_SIGNAL → SCANNING → REVEALED → CLAIMED/RESOLVED`; rewards are rolled at generation, not scan time. Claimed unique content cannot respawn.
 
 **Edges/failures:** full cargo leaves a revealed persistent pickup. Rescue expiration is `300 s` only after first scan. Duplicate artifact imports are rejected by M27 validation. Signal effects obey reduced motion.
+
+A scan reports a bearing and a distance to what it found, or names the radius it searched when it found nothing, and selects the contact so the follow-up is one action away. Every event of any severity surfaces on the HUD as a notice; an event that exists only in the timeline did not happen as far as the player is concerned.
 
 **Tests:** `T-M25-001` scan range/time/grace; `T-M25-002` generated-not-scan RNG; `T-M25-003` reward bounds; `T-M25-004` cargo-full persistence; `T-M25-005` unique artifact; `T-M25-006` rescue expiry; `T-M25-007` reveal accessibility modes.
 

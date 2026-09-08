@@ -572,3 +572,83 @@ test('T-M05-008: a neutral port sells fuel by the unit, with the cost shown', as
   );
   expect((await state()).credits).toBe(before.credits - Number(cost));
 });
+
+test('T-M18-008: all three peaceful acquisition actions are reachable at a neutral port', async ({
+  page,
+}) => {
+  await startCampaignFromHome(page);
+  const neutral = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    return state.planets.find((item) => item.owner === null)!.id;
+  });
+  await page.evaluate(() => {
+    window.__GAME__!.input({ type: 'launch' });
+    window.__GAME__!.tick(1);
+  });
+  await flyToEntity(page, neutral);
+  await page.evaluate((id) => {
+    window.__GAME__!.input({ type: 'dock', planetId: id });
+    window.__GAME__!.tick(1);
+  }, neutral);
+
+  const actions = page.locator('.vs-influence-actions');
+  await expect(actions).toBeVisible();
+  // M18 defines three actions; only development aid used to have a button.
+  await expect(actions.getByRole('button', { name: /trade contract/ })).toBeVisible();
+  await expect(actions.getByRole('button', { name: /development aid/ })).toBeVisible();
+  await expect(actions.getByRole('button', { name: /Broadcast appeal/ })).toBeVisible();
+
+  const influence = () =>
+    page.evaluate(
+      (id) =>
+        window.__GAME__!.state!.planets.find((item) => item.id === id)!
+          .influence['player'] ?? 0,
+      neutral,
+    );
+  expect(await influence()).toBe(0);
+  await actions.getByRole('button', { name: /trade contract/ }).click();
+  await expect.poll(influence).toBe(18);
+  // The contract is one-per-port, so the button reports why it is now refused.
+  await expect(
+    actions.getByRole('button', { name: /trade contract/ }),
+  ).toBeDisabled();
+});
+
+test('T-M12-007: refit is offered at a neutral port, priced above a home yard', async ({
+  page,
+}) => {
+  await startCampaignFromHome(page);
+  const home = page.getByRole('button', { name: 'Shipyard' }).first();
+  await expect(home).toBeVisible();
+  await home.click();
+  const homePrice = await page
+    .locator('.vs-module-card')
+    .first()
+    .textContent();
+
+  const neutral = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    return state.planets.find((item) => item.owner === null)!.id;
+  });
+  await page.evaluate(() => {
+    window.__GAME__!.input({ type: 'launch' });
+    window.__GAME__!.tick(1);
+  });
+  await flyToEntity(page, neutral);
+  await page.evaluate((id) => {
+    window.__GAME__!.input({ type: 'dock', planetId: id });
+    window.__GAME__!.tick(1);
+  }, neutral);
+
+  await page.getByRole('button', { name: 'Shipyard' }).first().click();
+  const awayPrice = await page
+    .locator('.vs-module-card')
+    .first()
+    .textContent();
+  expect(awayPrice).not.toBe(homePrice);
+
+  // A module states the stat it changes, not just a tier number.
+  await expect(page.locator('.vs-module-card').first()).toContainText(
+    /Mining rate|Cargo capacity|Fuel capacity|Sensor range|Shield|Weapon damage/,
+  );
+});

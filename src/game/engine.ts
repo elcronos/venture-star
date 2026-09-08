@@ -7,6 +7,8 @@ export {
   MINING_THROTTLE_MAX_BP,
   GameEngine,
   fuelRate,
+  refitMultiplier,
+  UPGRADE_COSTS,
   canonicalStringify,
   deserializeGame,
   serializeGame,
