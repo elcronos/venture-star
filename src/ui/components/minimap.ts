@@ -5,7 +5,7 @@ import {
   type Ship,
 } from '../../game/types';
 import { el } from '../dom';
-import type { GalaxyCell, MinimapState } from '../types';
+import type { GalaxyCell, MinimapState, UiDispatch } from '../types';
 
 /** Sector index and fractional in-sector offset for the ship's position. */
 export function minimapState(
@@ -51,7 +51,10 @@ export function syncMinimapMarker(
  * The marker position is also written straight to these custom properties from
  * the simulation loop, so it keeps tracking between DOM rebuilds.
  */
-export function renderMinimap(minimap: MinimapState): HTMLElement {
+export function renderMinimap(
+  minimap: MinimapState,
+  dispatch: UiDispatch,
+): HTMLElement {
   const { width, height, sector, offset } = minimap;
   const known = minimap.cells.filter((cell) => cell.discovered).length;
   const grid = el(
@@ -86,13 +89,14 @@ export function renderMinimap(minimap: MinimapState): HTMLElement {
       attrs: { 'aria-hidden': 'true' },
     }),
   );
-  const root = el(
-    'section',
+  const open = el(
+    'button',
     {
-      className: 'vs-minimap',
+      className: 'vs-minimap__open',
       attrs: {
-        'aria-label': 'Sector minimap',
-        style: minimapVariables(minimap),
+        type: 'button',
+        title: 'Open the galaxy map to plot a route',
+        'aria-label': `Open galaxy map. Currently in sector ${sector.x + 1}.${sector.y + 1} of ${width} by ${height}.`,
       },
     },
     [
@@ -103,6 +107,22 @@ export function renderMinimap(minimap: MinimapState): HTMLElement {
         }),
       ]),
       grid,
+    ],
+  );
+  open.addEventListener('click', () =>
+    dispatch({ type: 'navigate', destination: 'galaxy' }),
+  );
+  const root = el(
+    'section',
+    {
+      className: 'vs-minimap',
+      attrs: {
+        'aria-label': 'Sector minimap',
+        style: minimapVariables(minimap),
+      },
+    },
+    [
+      open,
       el('p', {
         className: 'vs-minimap__readout',
         text: `Sector ${sector.x + 1}.${sector.y + 1} of ${width} by ${height}, ${Math.round(offset.x * 100)}% across and ${Math.round(offset.y * 100)}% down the sector. ${known} of ${width * height} sectors charted.`,

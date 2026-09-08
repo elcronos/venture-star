@@ -775,7 +775,7 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **State transition:** `IDLE ↔ THRUSTING ↔ CRUISING ↔ BRAKING`; M06 may enter `AUTOPILOT`; M07 may enter `STATION_KEEP`; M05 can force `EMERGENCY_DRIFT`; destruction enters M28 transaction.
 
-**All stop:** an explicit `All stop` control (HUD button, or `X` on keyboard) is always available during flight. It cancels autopilot, zeroes throttle, releases held steering, and holds brake every tick until velocity is exactly zero, then releases itself. It is a request, not a mode: any thrust, steering, joystick, or non-zero throttle input cancels it immediately. It never spends fuel beyond normal braking and never overrides pause, sealing, or emergency drift.
+**Full stop:** an explicit `Full stop` control (HUD button, or `X` on keyboard) is always available during flight. It cancels autopilot, zeroes throttle, releases held steering, and holds brake every tick until velocity is exactly zero, then releases itself. It is a request, not a mode: any thrust, steering, joystick, or non-zero throttle input cancels it immediately. It never spends fuel beyond normal braking and never overrides pause, sealing, or emergency drift.
 
 **Edges/failures:** opposite keyboard directions cancel. Losing window focus clears held inputs next tick. Touch joystick release returns input to zero within `50 ms`. UI/menu input never leaks into flight. All stop issued while paused takes effect on the first tick after resume.
 
@@ -2505,9 +2505,9 @@ HUD elements are ordered by urgency and may collapse only from the bottom of thi
 1. **Critical survival:** hull, armour, shield, fuel/reserve state, active severe hazard, pause/lease/save-failure state.
 2. **Immediate control:** speed, throttle, heading, station lock, autopilot state/interrupt reason, selected target, weapon state/ammo.
 3. **Interaction:** contextual action, mining progress/rate/full-cargo reason, scan progress, docking/occupation channel.
-4. **Navigation:** sector coordinates, danger band, minimap position, route next step, wrap indicator, route fuel forecast.
+4. **Navigation:** sector coordinates, danger band, minimap position, route next step, wrap indicator, route fuel forecast. The minimap is itself the control that opens the galaxy map.
 5. **Economy:** cargo used/capacity, credits, carried material totals.
-6. **Strategy:** current objective, planet-count progress, research/production summary, noncritical alerts.
+6. **Strategy:** planet-count progress, research/production summary, noncritical alerts. The current objective is not shown on the flight HUD — it competes with the context bar for the same screen edge — and appears in the pause menu instead.
 
 Bars include numeric values when focused, in critical state, or `Show HUD numbers` is enabled; the default always shows `fuel current/max`, `cargo used/max`, and bomb count numerically. Shield/armour/hull use distinct icons and line treatments. Health order remains shield over armour over hull in every layout. Critical hull (`<25%`) uses the word `CRITICAL`, triangular warning icon, and optional pulse; reduced motion replaces pulse with a static double border.
 
@@ -2515,7 +2515,7 @@ Fuel turns warning at forecasted home margin `<15 FU` and displays `LOW FUEL`; e
 
 Every contextual action mirrors the simulation's own preconditions exactly: an offered action always succeeds, and a blocked one names the specific reason it is blocked (range in `wu`, closing speed, throttle, magazine, reload, emergency drift, cargo, service lock, or ownership). A control that silently does nothing is a defect, not a hint.
 
-The selected target card shows name/type, relation/faction pattern, distance in `wu`, health layers if known, interaction range state, and up to three legal actions. Unknown values display `Unknown`, not zero. Dynamic intel carries `LIVE`, `RECENT`, `STALE`, or `UNKNOWN` text and timestamp/age; static geography is not mislabeled stale.
+The selected target card shows name/type, relation/faction pattern, distance in `wu`, health layers if known, interaction range state, and — for a resource deposit — remaining yield against the yield it held when generated. It carries no action buttons: actions are rendered once, in the context bar, because showing the same `Dock`/`Autopilot`/`Bomb` row in both places reads as two different controls. Unknown values display `Unknown`, not zero. Dynamic intel carries `LIVE`, `RECENT`, `STALE`, or `UNKNOWN` text and timestamp/age; static geography is not mislabeled stale.
 
 The flight screen carries a persistent minimap: one square cell per galaxy sector at the campaign's `width×height`, the occupied sector outlined, charted sectors filled and uncharted sectors left dim, known planets marked with their ownership colour, known hazards hatched, and a marker showing the ship's fractional position inside its sector. It is decorative to assistive technology; the same information is exposed as a text readout naming the sector, the percentage across and down the sector, and the charted-sector count. The marker tracks the ship every simulation tick even on ticks where the HUD document is not rebuilt.
 

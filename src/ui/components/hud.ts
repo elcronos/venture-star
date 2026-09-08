@@ -53,30 +53,9 @@ function meter(
   return root;
 }
 
-function targetCard(
-  flight: FlightState,
-  dispatch: UiDispatch,
-): HTMLElement | null {
+function targetCard(flight: FlightState): HTMLElement | null {
   const target = flight.target;
   if (!target) return null;
-  const actions = target.actions.slice(0, 3).map((action) =>
-    button(
-      action.label,
-      () =>
-        dispatch({
-          type: 'context-action',
-          actionId: action.id,
-          targetId: target.id,
-        }),
-      {
-        icon: action.icon,
-        disabledReason: action.disabledReason,
-        className: action.destructive
-          ? 'vs-button--danger'
-          : 'vs-button--compact',
-      },
-    ),
-  );
   return el(
     'section',
     {
@@ -122,14 +101,17 @@ function targetCard(
           }),
         ]),
       ]),
-      target.shield || target.armour || target.hull
-        ? el('div', { className: 'vs-target__health' }, [
-            target.shield ? meter(target.shield, 'shield') : null,
-            target.armour ? meter(target.armour, 'armour') : null,
-            target.hull ? meter(target.hull, 'hull') : null,
+      target.deposit
+        ? el('div', { className: 'vs-target__deposit' }, [
+            meter(target.deposit, 'mining', 'vs-meter--deposit'),
           ])
-        : el('p', { className: 'vs-muted', text: 'Health: Unknown' }),
-      el('div', { className: 'vs-action-row' }, actions),
+        : target.shield || target.armour || target.hull
+          ? el('div', { className: 'vs-target__health' }, [
+              target.shield ? meter(target.shield, 'shield') : null,
+              target.armour ? meter(target.armour, 'armour') : null,
+              target.hull ? meter(target.hull, 'hull') : null,
+            ])
+          : el('p', { className: 'vs-muted', text: 'Health: Unknown' }),
     ],
   );
 }
@@ -388,10 +370,11 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
           () => dispatch({ type: 'open-overlay', overlay: 'timeline' }),
           { icon: 'timeline', className: 'vs-button--compact' },
         ),
-        button('All stop', () => dispatch({ type: 'all-stop' }), {
+        button('Full stop', () => dispatch({ type: 'all-stop' }), {
           icon: 'all-stop',
           className: `vs-button--compact vs-button--allstop ${flight.allStop ? 'is-active' : ''}`,
-          title: 'Cancel autopilot and brake to a full stop (X)',
+          title:
+            'Full stop (X) — cancels autopilot and brakes the ship to a halt, so you can dock, mine or line up a bomb.',
         }),
         state.pauseReasons.length
           ? button(
@@ -483,30 +466,8 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
             : null,
         ],
       ),
-      renderMinimap(flight.minimap),
-      targetCard(flight, dispatch),
-      flight.objective
-        ? el(
-            'section',
-            {
-              className: 'vs-objective',
-              attrs: { 'aria-label': 'Current objective' },
-            },
-            [
-              icon('objective'),
-              el('div', {}, [
-                el('span', {
-                  className: 'vs-eyebrow',
-                  text: 'Current objective',
-                }),
-                el('strong', { text: flight.objective }),
-              ]),
-              flight.planetsControlled
-                ? el('span', { text: flight.planetsControlled })
-                : null,
-            ],
-          )
-        : null,
+      renderMinimap(flight.minimap, dispatch),
+      targetCard(flight),
       el(
         'nav',
         {

@@ -1179,7 +1179,19 @@ function targetState(
           hull: meter(entity.hull, 120, 'Hull'),
         }
       : {}),
-    actions: actionsFor(state, ship, entity),
+    ...('material' in entity
+      ? {
+          deposit: meter(
+            entity.remaining,
+            entity.capacity ?? entity.remaining,
+            `${entity.material} remaining`,
+            entity.remaining === 0,
+          ),
+        }
+      : {}),
+    // Actions are rendered once, in the context bar; repeating them on the
+    // target card gave every planet two identical Dock/Autopilot/Bomb rows.
+    actions: [],
   };
 }
 

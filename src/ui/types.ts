@@ -43,6 +43,8 @@ export interface TargetState {
   shield?: MeterState;
   armour?: MeterState;
   hull?: MeterState;
+  /** Remaining yield of a resource deposit, against what it held when found. */
+  deposit?: MeterState;
   actions: ContextAction[];
 }
 

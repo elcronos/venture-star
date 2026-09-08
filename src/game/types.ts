@@ -60,6 +60,8 @@ export interface ResourceNode {
   position: Vec2;
   material: Material;
   remaining: number;
+  /** Yield the deposit held when generated. Absent in pre-capacity saves. */
+  capacity?: number;
   miningProgressMilli: number;
 }
 

@@ -294,6 +294,18 @@ function pause(state: UiState, dispatch: UiDispatch): HTMLElement {
       el('p', {
         text: `Simulation stopped: ${state.pauseReasons.join(', ') || 'explicit pause'}. Clearing one reason will not clear the others.`,
       }),
+      state.flight.objective
+        ? el('p', { className: 'vs-pause-objective' }, [
+            icon('objective'),
+            el('span', {}, [
+              el('strong', { text: 'Objective: ' }),
+              el('span', { text: state.flight.objective }),
+              ...(state.flight.planetsControlled
+                ? [el('span', { text: ` · ${state.flight.planetsControlled}` })]
+                : []),
+            ]),
+          ])
+        : null,
       button('Resume', () => dispatch({ type: 'resume' }), {
         icon: 'play',
         className: 'vs-button--primary',

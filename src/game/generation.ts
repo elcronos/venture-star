@@ -265,6 +265,7 @@ function generateNodes(
     position: { x: shipX + direction * 240 * SCALE, y: homePosition.y },
     material: 'ore',
     remaining: 40,
+    capacity: 40,
     miningProgressMilli: 0,
   });
   for (let y = 0; y < height; y++)
@@ -283,13 +284,15 @@ function generateNodes(
       };
       const multipliers = [0.85, 1, 1.25, 1.6, 2.1];
       const [min, max] = ranges[material];
+      const yield_ = Math.floor(rng.int(min, max) * multipliers[tier]!);
       nodes.push({
         id: '',
         sectorX: x,
         sectorY: y,
         position: localPosition(x, y, rng),
         material,
-        remaining: Math.floor(rng.int(min, max) * multipliers[tier]!),
+        remaining: yield_,
+        capacity: yield_,
         miningProgressMilli: 0,
       });
     }

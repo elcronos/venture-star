@@ -22,7 +22,7 @@ function shipSpeed(page: import('@playwright/test').Page): Promise<number> {
   });
 }
 
-test('T-M04-007: All stop cancels autopilot and brings a cruising ship to rest', async ({
+test('T-M04-007: Full stop cancels autopilot and brings a cruising ship to rest', async ({
   page,
 }) => {
   await launch(page);
@@ -42,7 +42,7 @@ test('T-M04-007: All stop cancels autopilot and brings a cruising ship to rest',
   await expect.poll(() => shipSpeed(page)).toBeGreaterThan(0);
   await expect(page.locator('.vs-autopilot')).toBeVisible();
 
-  await page.getByRole('button', { name: 'All stop' }).click();
+  await page.getByRole('button', { name: 'Full stop' }).click();
 
   await expect.poll(() => shipSpeed(page), { timeout: 15_000 }).toBe(0);
   expect(
@@ -56,7 +56,7 @@ test('T-M04-007: All stop cancels autopilot and brings a cruising ship to rest',
   ).toBeLessThanOrEqual(0);
 });
 
-test('T-M04-007b: thrust after an all stop returns control to the pilot', async ({
+test('T-M04-007b: thrust after a full stop returns control to the pilot', async ({
   page,
 }) => {
   await launch(page);
@@ -64,7 +64,7 @@ test('T-M04-007b: thrust after an all stop returns control to the pilot', async 
   await expect.poll(() => shipSpeed(page)).toBeGreaterThan(0);
   await page.keyboard.up('w');
 
-  await page.getByRole('button', { name: 'All stop' }).click();
+  await page.getByRole('button', { name: 'Full stop' }).click();
   await expect.poll(() => shipSpeed(page), { timeout: 15_000 }).toBe(0);
 
   await page.keyboard.down('w');
@@ -311,4 +311,95 @@ test('T-M08-001: autopilot to a resource node leaves the ship able to mine', asy
       }),
     )
     .toBe(node);
+});
+
+test('UX-T-077: a mined deposit reports how much yield is left, and actions appear once', async ({
+  page,
+}) => {
+  await launch(page);
+  const node = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    const ship = state.ships.find(
+      (candidate) => candidate.id === state.playerShipId,
+    )!;
+    return state.nodes
+      .filter((item) => item.remaining > 0)
+      .map((item) => ({
+        id: item.id,
+        distance: Math.hypot(
+          item.position.x - ship.position.x,
+          item.position.y - ship.position.y,
+        ),
+      }))
+      .sort((a, b) => a.distance - b.distance)[0]!.id;
+  });
+  await page.evaluate((id) => {
+    window.__GAME__!.autopilotTo(id);
+  }, node);
+
+  // Wait for autopilot to stop the ship, so a mining lock is legal.
+  await expect
+    .poll(
+      () =>
+        page.evaluate((id) => {
+          const state = window.__GAME__!.state!;
+          const ship = state.ships.find(
+            (candidate) => candidate.id === state.playerShipId,
+          )!;
+          const target = state.nodes.find((item) => item.id === id)!;
+          const distance =
+            Math.hypot(
+              ship.position.x - target.position.x,
+              ship.position.y - target.position.y,
+            ) / 1_000;
+          return distance <= 96 && Math.hypot(ship.velocity.x, ship.velocity.y) === 0;
+        }, node),
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+
+  const deposit = page.getByRole('meter', { name: /remaining$/ });
+  await expect(deposit).toBeVisible();
+  const capacity = await page.evaluate(
+    (id) => window.__GAME__!.state!.nodes.find((n) => n.id === id)!.capacity,
+    node,
+  );
+  expect(capacity).toBeGreaterThan(0);
+  await expect(deposit).toHaveAttribute('aria-valuemax', String(capacity));
+  await expect(deposit).toHaveAttribute('aria-valuenow', String(capacity));
+
+  // The target card used to repeat the same Dock/Autopilot/Bomb row the
+  // context bar already shows. The card now carries no action buttons, and the
+  // context bar offers each action exactly once. (The contacts list keeps its
+  // own per-contact buttons; those are not duplicates.)
+  expect(
+    await page.locator('.vs-target').getByRole('button').count(),
+  ).toBe(0);
+  const contextBar = page.getByRole('navigation', { name: 'Context actions' });
+  for (const label of ['Mine', 'Autopilot']) {
+    expect(
+      await contextBar.getByRole('button', { name: label, exact: true }).count(),
+    ).toBe(1);
+  }
+
+  // The bar tracks depletion as the deposit is mined out.
+  await page.evaluate((id) => {
+    const state = window.__GAME__!.state!;
+    const target = state.nodes.find((n) => n.id === id)!;
+    window.__GAME__!.input({ type: 'startMining', nodeId: target.id });
+    window.__GAME__!.tick(400);
+  }, node);
+  await expect
+    .poll(() => deposit.getAttribute('aria-valuenow'))
+    .not.toBe(String(capacity));
+});
+
+test('UX-T-078: the minimap opens the galaxy map', async ({ page }) => {
+  await launch(page);
+  await page
+    .getByRole('button', { name: /^Open galaxy map/ })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Galaxy', exact: true }),
+  ).toBeVisible();
 });
