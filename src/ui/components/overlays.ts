@@ -221,8 +221,9 @@ function settings(state: UiState, dispatch: UiDispatch): HTMLElement {
 function help(dispatch: UiDispatch): HTMLElement {
   const controls: Array<[string, string]> = [
     ['W / ↑', 'Forward thrust'],
-    ['S / ↓', 'Brake, then reverse'],
+    ['S / ↓', 'Brake — also cancels autopilot'],
     ['A D / ← →', 'Turn'],
+    ['X', 'All stop — cancel autopilot and brake to a halt'],
     ['E', 'Context action'],
     ['R', 'Plot or cancel autopilot'],
     ['G', 'Galaxy'],
@@ -230,12 +231,46 @@ function help(dispatch: UiDispatch): HTMLElement {
     ['Space', 'Pause'],
     ['Escape', 'Back / Pause'],
   ];
+  const loop: Array<[string, string]> = [
+    [
+      'Mine — the core loop',
+      'Mining pays for everything else. Tap a resource node to select it, then use Autopilot to fly there; autopilot brakes the ship to a stop in range, and Mine becomes available. A lock needs you within 96 wu and below 8 wu/s. Whenever Mine is unavailable the button states the exact reason.',
+    ],
+    [
+      'Sell, refuel, refit',
+      'Carry the ore back to a planet and Dock — that needs 96 wu and below 20 wu/s. Docking opens the market, refuelling, repairs and the shipyard.',
+    ],
+    [
+      'Scan',
+      'Scan sweeps twice your sensor range for one unclaimed anomaly — abandoned cargo or a treasure asteroid — and reports it in the Timeline. It recharges every 5 seconds and sees nothing beyond that radius, so scan while exploring, not from the dock.',
+    ],
+    [
+      'Autopilot',
+      'Autopilot flies to the selected target and brakes to a full stop: 84 wu from a planet or node, 24 wu from a bare coordinate. The status line reads Travelling, then Braking. Thrust, steering, brake or All stop cancels it at once.',
+    ],
+    [
+      'Take the frontier',
+      'Neutral planets fall to influence or to bombs; rival planets must be taken. You win by controlling every planet.',
+    ],
+  ];
   return modal(
     'Controls / How to play',
     el('div', { className: 'vs-help' }, [
       el('p', {
         text: 'Fly one flagship, scan the frontier, mine and trade, then win every planet through influence or force.',
       }),
+      el('h3', { text: 'How a run works' }),
+      el(
+        'dl',
+        { className: 'vs-controls-list vs-help__loop' },
+        loop.map(([title, detail]) =>
+          el('div', {}, [
+            el('dt', { text: title }),
+            el('dd', { text: detail }),
+          ]),
+        ),
+      ),
+      el('h3', { text: 'Controls' }),
       el(
         'dl',
         { className: 'vs-controls-list' },

@@ -62,5 +62,6 @@ test("Galaxy map navigation is paused, wrap-aware, and starts a route through th
   await expect(page.getByText("Emergency drift remains available")).toBeVisible();
   await page.getByRole("button", { name: "Start autopilot" }).click();
   await expect(page.getByRole("heading", { name: "Flight — Venture Star" })).toBeVisible();
-  await expect(page.getByText("Autopilot: sector 1,1")).toBeVisible();
+  // The status line names the autopilot phase, not just the destination.
+  await expect(page.getByText(/^(Travelling|Braking): sector 1,1$/)).toBeVisible();
 });

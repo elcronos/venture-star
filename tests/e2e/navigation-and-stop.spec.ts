@@ -181,3 +181,134 @@ test('T-M04-006b: the canvas paints interpolated positions between simulation ti
   expect(sample.frames).toBeGreaterThan(sample.ticks);
   expect(sample.positions).toBeGreaterThan(sample.ticks);
 });
+
+test('T-M06-002: autopilot brakes to an interaction standoff so docking is legal', async ({
+  page,
+}) => {
+  await launch(page);
+  const home = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    const planet = state.planets.find((item) => item.owner === 'player')!;
+    return { id: planet.id, name: planet.name };
+  });
+
+  const approach = () =>
+    page.evaluate(() => {
+      const state = window.__GAME__!.state!;
+      const ship = state.ships.find(
+        (candidate) => candidate.id === state.playerShipId,
+      )!;
+      const planet = state.planets.find((item) => item.owner === 'player')!;
+      return {
+        distance:
+          Math.hypot(
+            ship.position.x - planet.position.x,
+            ship.position.y - planet.position.y,
+          ) / 1_000,
+        speed: Math.hypot(ship.velocity.x, ship.velocity.y) / 1_000,
+      };
+    });
+
+  // The ship launches outside docking range, so an approach is required.
+  expect((await approach()).distance).toBeGreaterThan(96);
+
+  await page.evaluate((id) => {
+    window.__GAME__!.autopilotTo(id);
+  }, home.id);
+  await expect(page.locator('.vs-autopilot')).toBeVisible();
+
+  // Autopilot must end the approach itself: dock refuses beyond 96 wu
+  // separation or above 20 wu/s, and coasting alone sheds only 8 wu/s².
+  await expect
+    .poll(
+      async () => {
+        const { distance, speed } = await approach();
+        return distance <= 96 && speed <= 20;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+  await expect(page.locator('.vs-autopilot')).toHaveCount(0);
+
+  // And the dock actually succeeds from where autopilot left the ship.
+  await page.evaluate((id) => {
+    window.__GAME__!.input({ type: 'dock', planetId: id });
+    window.__GAME__!.tick(1);
+  }, home.id);
+  expect(
+    await page.evaluate(() => {
+      const state = window.__GAME__!.state!;
+      return state.ships.find(
+        (candidate) => candidate.id === state.playerShipId,
+      )!.dockedPlanetId;
+    }),
+  ).toBe(home.id);
+});
+
+test('T-M08-001: autopilot to a resource node leaves the ship able to mine', async ({
+  page,
+}) => {
+  await launch(page);
+  const node = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    const ship = state.ships.find(
+      (candidate) => candidate.id === state.playerShipId,
+    )!;
+    // The opening loop guarantees a node in the home sector.
+    const nearest = state.nodes
+      .filter((item) => item.remaining > 0)
+      .map((item) => ({
+        id: item.id,
+        distance: Math.hypot(
+          item.position.x - ship.position.x,
+          item.position.y - ship.position.y,
+        ),
+      }))
+      .sort((a, b) => a.distance - b.distance)[0]!;
+    return nearest.id;
+  });
+
+  await page.evaluate((id) => {
+    window.__GAME__!.autopilotTo(id);
+  }, node);
+
+  // A mining lock is the tightest gate in the game: 96 wu and 8 wu/s.
+  await expect
+    .poll(
+      () =>
+        page.evaluate((id) => {
+          const state = window.__GAME__!.state!;
+          const ship = state.ships.find(
+            (candidate) => candidate.id === state.playerShipId,
+          )!;
+          const target = state.nodes.find((item) => item.id === id)!;
+          const distance =
+            Math.hypot(
+              ship.position.x - target.position.x,
+              ship.position.y - target.position.y,
+            ) / 1_000;
+          const speed =
+            Math.hypot(ship.velocity.x, ship.velocity.y) / 1_000;
+          return distance <= 96 && speed <= 8;
+        }, node),
+      { timeout: 20_000 },
+    )
+    .toBe(true);
+
+  // The Mine action is offered without a blocking reason, and it works.
+  const mine = page
+    .getByRole('navigation', { name: 'Context actions' })
+    .getByRole('button', { name: 'Mine', exact: true });
+  await expect(mine).toBeEnabled();
+  await mine.click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const state = window.__GAME__!.state!;
+        return state.ships.find(
+          (candidate) => candidate.id === state.playerShipId,
+        )!.miningNodeId;
+      }),
+    )
+    .toBe(node);
+});

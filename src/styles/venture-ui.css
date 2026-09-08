@@ -184,6 +184,9 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
 .vs-timeline__events li { padding: .8rem; border-left: 3px solid var(--vs-blue); background: rgb(5 9 20 / 50%); }
 .vs-timeline__events li.severity-major { border-color: var(--vs-amber); } .vs-timeline__events li.severity-critical { border-color: var(--vs-coral); }
 .vs-controls-list > div { display: grid; grid-template-columns: 8rem 1fr; padding: .35rem 0; border-bottom: var(--vs-border); }
+.vs-help h3 { margin: 1rem 0 .25rem; font-size: 1rem; }
+.vs-help__loop > div { grid-template-columns: 11rem 1fr; gap: .75rem; }
+.vs-help__loop dt { font-weight: 700; }
 .vs-controls-list dd { margin: 0; }
 
 [data-high-contrast="true"] { --vs-panel: rgb(16 35 59 / 100%); --vs-grid: var(--vs-blue); }

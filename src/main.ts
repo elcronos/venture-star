@@ -5,6 +5,12 @@ import {
   type GameCommand,
   type GameState,
 } from './game/engine';
+import {
+  blocked,
+  bombBlockedReason,
+  dockBlockedReason,
+  miningBlockedReason,
+} from './game/interactions';
 import { cargoUsed, wrappedDelta, wrappedDistance } from './game/math';
 import {
   SCALE,
@@ -18,6 +24,7 @@ import {
 import { installTestHook } from './devHook';
 import { VentureStore } from './persistence/store';
 import { SpaceCanvas } from './render/spaceCanvas';
+import { emptyUiState as buildEmptyUiState } from './ui/emptyState';
 import { minimapState, syncMinimapMarker } from './ui/components/minimap';
 import {
   mountVentureUi,
@@ -73,7 +80,14 @@ let selectedId: string | null = null;
 let selectedCell: { x: number; y: number } | null = null;
 let dockTab: DockState['activeTab'] = 'overview';
 let marketQuantities: Record<string, number> = {};
-let autopilot: { x: number; y: number; label: string } | null = null;
+let autopilot: {
+  x: number;
+  y: number;
+  name: string;
+  /** World units to stop short of the target, so it stays in interaction range. */
+  standoff: number;
+  phase: 'Travelling' | 'Braking' | 'Arrived';
+} | null = null;
 let controls = {
   thrust: false,
   left: false,
@@ -94,7 +108,13 @@ const space = new SpaceCanvas(ui.getCanvasHost(), {
   reducedMotion: () => settings.reducedMotion,
   onWorldTap: (x, y) => {
     if (!engine) return;
-    autopilot = { x, y, label: 'Autopilot: selected coordinates' };
+    autopilot = {
+      x,
+      y,
+      name: 'selected coordinates',
+      standoff: POINT_STANDOFF_WU,
+      phase: 'Travelling',
+    };
     destination = 'flight';
     resumeSimulation();
   },
@@ -143,6 +163,7 @@ async function boot(): Promise<void> {
       engine = GameEngine.create(options);
       render();
     },
+    autopilotTo: setAutopilotTo,
     space,
   });
 }
@@ -204,6 +225,19 @@ function beginAllStop(): void {
   render();
 }
 
+/** Mirrors the simulation's own braking authority, in world units per second². */
+const BRAKE_WU_PER_SECOND = 150;
+/**
+ * Autopilot arrives at a standstill rather than merely slow. Docking allows
+ * 20 wu/s and a mining lock only 8, and unpowered drag sheds just 8 wu/s², so
+ * anything short of a stop leaves the player coasting out of range again.
+ */
+const ARRIVAL_SPEED_MILLI = 0;
+/** Stop this far from an interaction target: inside dock range, clear of it. */
+const INTERACTION_STANDOFF_WU = 84;
+/** A bare coordinate has nothing to keep clear of. */
+const POINT_STANDOFF_WU = 24;
+
 function applyFlightIntent(state: GameState): void {
   const ship = playerShip(state);
   if (allStop) {
@@ -227,30 +261,47 @@ function applyFlightIntent(state: GameState): void {
   if (controls.brake) autopilot = null;
   let turn: -1 | 0 | 1 = controls.left ? -1 : controls.right ? 1 : 0;
   let throttle = controls.thrust ? 1 : controls.throttle;
+  let brake = controls.brake;
   if (autopilot) {
     const worldWidth = state.width * SECTOR_SIZE * SCALE;
     const worldHeight = state.height * SECTOR_SIZE * SCALE;
     const dx = wrappedDelta(ship.position.x, autopilot.x, worldWidth);
     const dy = wrappedDelta(ship.position.y, autopilot.y, worldHeight);
-    const distance = Math.hypot(dx, dy);
-    if (distance < 72 * SCALE) {
+    const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
+    // Distance still to cover before the ship should be at a standstill.
+    const remaining =
+      Math.hypot(dx, dy) - autopilot.standoff * SCALE;
+    // Ship-frame braking distance, matching the simulation's own deceleration.
+    const stopping = speed ** 2 / (2 * BRAKE_WU_PER_SECOND * SCALE);
+    const desired = normalizeTurn((Math.atan2(dy, dx) / (Math.PI * 2)) * 65_536);
+    const error = signedHeadingDelta(ship.heading, desired);
+
+    if (remaining <= 0 && speed <= ARRIVAL_SPEED_MILLI) {
+      // Arrived and slow enough to dock, mine, or bomb. Hand back control.
       autopilot = null;
       throttle = 0;
+      turn = 0;
+      render();
+    } else if (remaining <= stopping) {
+      // Coasting is far too weak to stop in range: brake under power instead.
+      autopilot.phase = 'Braking';
+      throttle = 0;
+      turn = 0;
+      brake = true;
     } else {
-      const desired = normalizeTurn(
-        (Math.atan2(dy, dx) / (Math.PI * 2)) * 65_536,
-      );
-      const error = signedHeadingDelta(ship.heading, desired);
+      autopilot.phase = 'Travelling';
       turn = Math.abs(error) < 600 ? 0 : error < 0 ? -1 : 1;
+      // Never build speed while pointing the wrong way; it only costs fuel and
+      // lengthens the approach.
       throttle =
-        Math.abs(error) > 8000 ? 0.25 : distance < 240 * SCALE ? 0.35 : 0.82;
+        Math.abs(error) > 8_000 ? 0 : remaining < 240 * SCALE ? 0.35 : 0.82;
     }
   }
   send({
     type: 'flight',
     throttle,
     turn,
-    ...(controls.brake ? { brake: true } : {}),
+    ...(brake ? { brake: true } : {}),
   });
 }
 
@@ -535,7 +586,9 @@ function setAutopilotTo(id: string): void {
   autopilot = {
     x: entity.position.x,
     y: entity.position.y,
-    label: `Autopilot: ${'name' in entity ? entity.name : id}`,
+    name: 'name' in entity ? entity.name : id,
+    standoff: INTERACTION_STANDOFF_WU,
+    phase: 'Travelling',
   };
   destination = 'flight';
   resumeSimulation();
@@ -546,7 +599,9 @@ function startSelectedRoute(): void {
   autopilot = {
     x: (selectedCell.x * SECTOR_SIZE + SECTOR_SIZE / 2) * SCALE,
     y: (selectedCell.y * SECTOR_SIZE + SECTOR_SIZE / 2) * SCALE,
-    label: `Autopilot: sector ${selectedCell.x + 1},${selectedCell.y + 1}`,
+    name: `sector ${selectedCell.x + 1},${selectedCell.y + 1}`,
+    standoff: POINT_STANDOFF_WU,
+    phase: 'Travelling',
   };
   destination = 'flight';
   resumeSimulation();
@@ -740,6 +795,10 @@ function render(): void {
   if (engine) space.setState(engine.snapshot());
 }
 
+function emptyUiState(): UiState {
+  return buildEmptyUiState(records, settings);
+}
+
 function buildUiState(): UiState {
   if (!engine) return emptyUiState();
   const state = engine.snapshot();
@@ -824,7 +883,9 @@ function buildUiState(): UiState {
       speed: Math.hypot(ship.velocity.x, ship.velocity.y) / SCALE,
       throttle: Math.max(0, Math.round(ship.throttleBasisPoints / 100)),
       heading: Math.round((ship.heading / 65_536) * 360),
-      ...(autopilot ? { autopilot: autopilot.label } : {}),
+      ...(autopilot
+        ? { autopilot: `${autopilot.phase}: ${autopilot.name}` }
+        : {}),
       ...(ship.miningNodeId
         ? {
             stationLock: Math.max(
@@ -886,73 +947,6 @@ function buildUiState(): UiState {
   return base;
 }
 
-function emptyUiState(): UiState {
-  const zero = meter(0, 1, '-');
-  return {
-    destination: 'home',
-    pauseReasons: [],
-    saveState: 'Saved',
-    home: {
-      version: '1.0.0',
-      recordCount: records.length,
-      offline: !navigator.onLine,
-    },
-    flight: {
-      campaignName: 'Venture Star',
-      sector: { x: 1, y: 1, danger: 'Haven' },
-      shield: zero,
-      armour: zero,
-      hull: zero,
-      fuel: zero,
-      cargo: zero,
-      credits: 0,
-      bombs: 0,
-      speed: 0,
-      throttle: 0,
-      heading: 0,
-      contacts: [],
-      actions: [],
-      alerts: [],
-      timeline: [],
-      minimap: {
-        width: 10,
-        height: 10,
-        sector: { x: 0, y: 0 },
-        offset: { x: 0.5, y: 0.5 },
-        cells: [],
-      },
-    },
-    galaxy: {
-      width: 10,
-      height: 10,
-      cells: [],
-      zoom: 1,
-      filters: {
-        planets: true,
-        resources: true,
-        hazards: true,
-        discoveries: true,
-        factions: true,
-        trade: false,
-      },
-    },
-    dock: {
-      planetName: 'Hearthlight',
-      owner: 'player',
-      activeTab: 'overview',
-      availableTabs: ['overview', 'market', 'shipyard'],
-      credits: 0,
-      cargo: zero,
-      fuel: zero,
-      hull: zero,
-      bombs: 0,
-      market: [],
-      modules: [],
-    },
-    records,
-    settings,
-  };
-}
 
 function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
   const materials: Material[] = ['ore', 'metal', 'crystal', 'exotic'];
@@ -1080,34 +1074,30 @@ function actionsFor(
   const distance =
     wrappedDistance(ship.position, entity.position, state.width, state.height) /
     SCALE;
-  const far = distance > 100 ? 'Move within 100 wu' : undefined;
-  if ('material' in entity) {
-    const miningBlocked =
-      far ??
-      (Math.hypot(ship.velocity.x, ship.velocity.y) / SCALE > 8
-        ? 'Slow below 8 wu/s to acquire a mining lock'
-        : ship.throttleBasisPoints > 1_500
-          ? 'Reduce throttle below 15% to acquire a mining lock'
-          : undefined);
+  const autopilotAction = {
+    id: 'autopilot',
+    label: 'Autopilot',
+    icon: 'route' as const,
+  };
+  if ('material' in entity)
     return [
       {
         id: ship.miningNodeId === entity.id ? 'stop-mining' : 'mine',
         label: ship.miningNodeId === entity.id ? 'Stop mining' : 'Mine',
         icon: 'mining' as const,
-        ...(miningBlocked ? { disabledReason: miningBlocked } : {}),
+        ...blocked(miningBlockedReason(ship, entity, distance)),
       },
-      { id: 'autopilot', label: 'Autopilot', icon: 'route' as const },
+      autopilotAction,
     ];
-  }
   if ('market' in entity) {
     const result: ContextAction[] = [
       {
         id: 'dock',
         label: 'Dock',
         icon: 'planet',
-        ...(far ? { disabledReason: far } : {}),
+        ...blocked(dockBlockedReason(state, ship, entity, distance)),
       },
-      { id: 'autopilot', label: 'Autopilot', icon: 'route' },
+      autopilotAction,
     ];
     if (entity.owner !== 'player')
       result.push({
@@ -1115,19 +1105,19 @@ function actionsFor(
         label: 'Bomb',
         icon: 'bomb' as const,
         destructive: true,
-        ...(distance > 260 ? { disabledReason: 'Outside bomb range' } : {}),
+        ...blocked(bombBlockedReason(state, ship, distance)),
       });
     return result;
   }
   if ('faction' in entity)
     return [
-      { id: 'autopilot', label: 'Pursue', icon: 'route' as const },
+      { ...autopilotAction, label: 'Pursue' },
       {
         id: 'bomb',
         label: 'Bomb',
         icon: 'bomb' as const,
         destructive: true,
-        ...(distance > 260 ? { disabledReason: 'Outside bomb range' } : {}),
+        ...blocked(bombBlockedReason(state, ship, distance)),
       },
       {
         id: ship.holdFire ? 'autofire' : 'hold-fire',
@@ -1135,7 +1125,7 @@ function actionsFor(
         icon: 'weapon' as const,
       },
     ];
-  return [{ id: 'autopilot', label: 'Autopilot', icon: 'route' as const }];
+  return [autopilotAction];
 }
 
 function targetState(

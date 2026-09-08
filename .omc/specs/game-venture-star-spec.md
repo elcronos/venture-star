@@ -801,13 +801,13 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Formula:** desired cruise is `180 wu/s`; braking distance is `dBrake=v²/(2×150)+24 wu`; arrival tolerances are `24 wu` for a point and `84 wu` for an interaction target.
 
-**Effect:** local path uses collision waypoints with `48 wu` clearance; strategic path uses M03. Autopilot rotates, accelerates to `180 wu/s`, begins braking at `v²/(2×150)+24 wu`, and stops at `84 wu` from an interaction target or within `24 wu` of a point. Route and fuel forecast remain visible.
+**Effect:** local path uses collision waypoints with `48 wu` clearance; strategic path uses M03. Autopilot rotates, accelerates to `180 wu/s`, begins braking under power once remaining distance falls to `v²/(2×150)`, and comes to a **full stop** at `84 wu` from an interaction target or `24 wu` from a bare coordinate. Arrival at rest is required, not optional: docking refuses above `20 wu/s`, a mining lock above `8 wu/s`, and unpowered drag sheds only `8 wu/s²`, so an autopilot that merely cut throttle would coast out of range every time. Autopilot never thrusts while heading error exceeds `8000/65536` of a turn. Route and fuel forecast remain visible.
 
 **State transition:** `OFF → PLOTTING → TRAVEL → APPROACH → ARRIVED → OFF`. Transition to `INTERRUPTED` on manual steering magnitude `>0.20`, brake, all stop, hostile target entering live sensor range, incoming damage, newly detected severe hazard on route, route invalidation, or predicted usable fuel below zero. User may explicitly resume after any interruption. Opening a pausing screen suspends but does not cancel autopilot.
 
 **Edges/failures:** unreachable targets show a reason and never consume fuel. Destination destruction cancels. A moving target is repathed at `2 Hz`; if its speed exceeds flagship maximum for `3 s`, cancel. Autopilot never automatically enters a known severe hazard. It cannot activate bombs or initiate hostility.
 
-**Tests:** `T-M06-001` point arrival tolerance; `T-M06-002` interaction standoff; `T-M06-003` manual interrupt next tick; `T-M06-004` hostile/damage interrupt; `T-M06-005` braking without overshoot; `T-M06-006` wrap route; `T-M06-007` unreachable/vanished target; `T-M06-008` paused resume without catch-up.
+**Tests:** `T-M06-001` point arrival tolerance; `T-M06-002` interaction standoff, arrival at rest, and a dock that succeeds from where autopilot stopped; `T-M06-003` manual interrupt next tick; `T-M06-004` hostile/damage interrupt; `T-M06-005` braking without overshoot; `T-M06-006` wrap route; `T-M06-007` unreachable/vanished target; `T-M06-008` paused resume without catch-up.
 
 ### M07 — Assisted station-keeping and interaction lock [v0]
 
@@ -821,7 +821,7 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Edges/failures:** assist never spends fuel, cancels velocity rather than teleporting, and cannot pull through obstacles. Reduced motion removes orbital arc/camera ease but preserves lock indicator and physics.
 
-**Tests:** `T-M07-001` acquire at 84 wu/35 wu/s; `T-M07-002` no acquire outside thresholds; `T-M07-003` manual/high-throttle break; `T-M07-004` obstruction break; `T-M07-005` stable 30-second orbit; `T-M07-006` reduced-motion parity.
+**Tests:** `T-M08-001` autopilot to a node leaves the ship inside a legal mining lock; `T-M07-001` acquire at 84 wu/35 wu/s; `T-M07-002` no acquire outside thresholds; `T-M07-003` manual/high-throttle break; `T-M07-004` obstruction break; `T-M07-005` stable 30-second orbit; `T-M07-006` reduced-motion parity.
 
 ### M08 — Resource nodes and mining [v0; exotic in v0.1]
 
@@ -2512,6 +2512,8 @@ HUD elements are ordered by urgency and may collapse only from the bottom of thi
 Bars include numeric values when focused, in critical state, or `Show HUD numbers` is enabled; the default always shows `fuel current/max`, `cargo used/max`, and bomb count numerically. Shield/armour/hull use distinct icons and line treatments. Health order remains shield over armour over hull in every layout. Critical hull (`<25%`) uses the word `CRITICAL`, triangular warning icon, and optional pulse; reduced motion replaces pulse with a static double border.
 
 Fuel turns warning at forecasted home margin `<15 FU` and displays `LOW FUEL`; emergency displays `EMERGENCY DRIFT — weapons and mining offline`. Cargo full displays `FULL` and names the blocked activity. Autopilot status is one of `Plotting`, `Travelling`, `Approaching`, `Arrived`, or `Interrupted: <reason>` and is never communicated only by a route-line colour.
+
+Every contextual action mirrors the simulation's own preconditions exactly: an offered action always succeeds, and a blocked one names the specific reason it is blocked (range in `wu`, closing speed, throttle, magazine, reload, emergency drift, cargo, service lock, or ownership). A control that silently does nothing is a defect, not a hint.
 
 The selected target card shows name/type, relation/faction pattern, distance in `wu`, health layers if known, interaction range state, and up to three legal actions. Unknown values display `Unknown`, not zero. Dynamic intel carries `LIVE`, `RECENT`, `STALE`, or `UNKNOWN` text and timestamp/age; static geography is not mislabeled stale.
 

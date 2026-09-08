@@ -26,9 +26,14 @@ import {
 } from './types';
 import { z } from 'zod';
 
-const INTERACTION_RANGE_MILLI = 96 * SCALE;
+export const INTERACTION_RANGE_MILLI = 96 * SCALE;
+/** Docking is refused above this closing speed. */
+export const DOCK_SPEED_MILLI = 20 * SCALE;
+/** A mining lock needs the ship near-stationary and off the throttle. */
+export const MINING_SPEED_MILLI = 8 * SCALE;
+export const MINING_THROTTLE_MAX_BP = 1_500;
 const WEAPON_RANGE_MILLI = 300 * SCALE;
-const BOMB_RANGE_MILLI = 260 * SCALE;
+export const BOMB_RANGE_MILLI = 260 * SCALE;
 const MAX_SPEED_MILLI = 220 * SCALE;
 const EMERGENCY_SPEED_MILLI = 55 * SCALE;
 const ACCEL_MILLI_PER_SECOND = 92 * SCALE;
@@ -176,8 +181,8 @@ export class GameEngine {
           node &&
           !ship.emergency &&
           !ship.dockedPlanetId &&
-          Math.hypot(ship.velocity.x, ship.velocity.y) <= 8 * SCALE &&
-          ship.throttleBasisPoints <= 1_500 &&
+          Math.hypot(ship.velocity.x, ship.velocity.y) <= MINING_SPEED_MILLI &&
+          ship.throttleBasisPoints <= MINING_THROTTLE_MAX_BP &&
           wrappedDistanceSquared(
             ship.position,
             node.position,
@@ -713,7 +718,7 @@ export class GameEngine {
     )
       return;
     if (
-      Math.hypot(ship.velocity.x, ship.velocity.y) > 20 * SCALE ||
+      Math.hypot(ship.velocity.x, ship.velocity.y) > DOCK_SPEED_MILLI ||
       this.state.tick - ship.lastDamageTick < 100
     )
       return;
