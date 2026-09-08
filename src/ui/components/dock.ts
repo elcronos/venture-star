@@ -59,33 +59,37 @@ function overview(state: UiState, dispatch: UiDispatch): HTMLElement {
       el('div', { className: 'vs-panel vs-dock-brief' }, [
         el('h3', { text: 'Services' }),
         el('p', {
-          text: 'Trade local materials or fit a module before launching. Your route and tactical selection are preserved.',
+          text: 'Fuel and materials are traded in the Market tab. Your route and tactical selection are preserved.',
         }),
-        ...(dock.owner === 'player'
-          ? [
-              el('div', { className: 'vs-action-row' }, [
-                button(
-                  'Refuel 10 FU',
-                  () => dispatch({ type: 'dock-service', service: 'refuel' }),
-                  { icon: 'fuel' },
-                ),
-                button(
-                  'Repair ship',
-                  () => dispatch({ type: 'dock-service', service: 'repair' }),
-                  { icon: 'hull' },
-                ),
-                button(
-                  'Build bomb · 110 cr + 1 metal + 1 crystal',
-                  () => dispatch({ type: 'dock-service', service: 'buy-bomb' }),
-                  {
-                    icon: 'bomb',
-                    disabledReason:
-                      dock.bombs >= 3 ? 'Bomb rack is full' : undefined,
-                  },
-                ),
-              ]),
-            ]
-          : []),
+        el('div', { className: 'vs-action-row' }, [
+          button(
+            'Repair hull and armour',
+            () => dispatch({ type: 'dock-service', service: 'repair' }),
+            {
+              icon: 'hull',
+              // Repairs are a service of a planet you own, not of any market.
+              disabledReason:
+                dock.owner !== 'player'
+                  ? 'Repairs need a planet you control'
+                  : dock.hull.current >= dock.hull.max
+                    ? 'Hull and armour are already intact'
+                    : undefined,
+            },
+          ),
+          button(
+            'Build bomb · 110 cr + 1 metal + 1 crystal',
+            () => dispatch({ type: 'dock-service', service: 'buy-bomb' }),
+            {
+              icon: 'bomb',
+              disabledReason:
+                dock.owner !== 'player'
+                  ? 'Bombs are built at a planet you control'
+                  : dock.bombs >= 3
+                    ? 'Bomb rack is full'
+                    : undefined,
+            },
+          ),
+        ]),
         ...(dock.owner === 'neutral'
           ? [
               el('h3', { text: 'Peaceful acquisition' }),
@@ -148,12 +152,138 @@ function market(state: UiState, dispatch: UiDispatch): HTMLElement {
           el(
             'div',
             { className: 'vs-market__header', attrs: { role: 'row' } },
-            ['Material', 'You / stock', 'Buy / sell', 'Quantity', 'Action'].map(
+            [
+              'Material',
+              'In hold / for sale',
+              'Buy at',
+              'Sell at',
+              'Quantity',
+              'Action',
+            ].map(
               (label) =>
                 el('span', { text: label, attrs: { role: 'columnheader' } }),
             ),
           ),
           ...dock.market.map((row) => marketRow(row, dock, dispatch)),
+          fuelRow(dock, dispatch),
+        ],
+      ),
+      el('p', { className: 'vs-market__footnote' }, [
+        icon('fuel'),
+        el('span', {
+          text:
+            dock.owner === 'player'
+              ? 'Fuel is subsidised at your own planets. Neutral ports charge triple.'
+              : 'Neutral ports charge 3 credits per unit. Your own planets charge 1.',
+        }),
+      ]),
+    ],
+  );
+}
+
+/**
+ * Fuel sits in the market rather than behind a fixed "Refuel 10" button: it is
+ * bought by the unit at a quoted price, exactly like every other commodity.
+ */
+function fuelRow(dock: DockState, dispatch: UiDispatch): HTMLElement {
+  const offer = dock.fuelOffer;
+  const quantity = Math.max(1, Math.min(offer.quantity, offer.maxQuantity || 1));
+  const setQuantity = (value: number) =>
+    dispatch({
+      type: 'market-quantity',
+      rowId: 'fuel',
+      quantity: Math.max(1, Math.min(value, offer.maxQuantity || 1)),
+    });
+  const input = el('input', {
+    attrs: {
+      type: 'number',
+      min: 1,
+      max: Math.max(1, offer.maxQuantity),
+      value: quantity,
+      'aria-label': 'Fuel quantity',
+    },
+  });
+  input.addEventListener('change', () => setQuantity(Number(input.value)));
+  return el(
+    'div',
+    { className: 'vs-market__row is-fuel', attrs: { role: 'row' } },
+    [
+      el(
+        'div',
+        {
+          className: 'vs-market__material',
+          attrs: { role: 'cell', 'data-label': 'Material' },
+        },
+        [
+          icon('fuel'),
+          el('div', {}, [
+            el('strong', { text: 'Fuel' }),
+            el('span', {
+              text: `${dock.fuel.current}/${dock.fuel.max} FU in tank`,
+            }),
+          ]),
+        ],
+      ),
+      el('span', {
+        text: `${dock.fuel.current} / ${offer.stock}`,
+        attrs: { role: 'cell', 'data-label': 'In hold / for sale' },
+      }),
+      el('span', {
+        className: 'vs-market__price',
+        text: `${offer.price} cr`,
+        attrs: { role: 'cell', 'data-label': 'Buy at' },
+      }),
+      el('span', {
+        className: 'vs-muted',
+        text: '—',
+        attrs: { role: 'cell', 'data-label': 'Sell at' },
+      }),
+      el(
+        'div',
+        {
+          className: 'vs-stepper',
+          attrs: { role: 'cell', 'data-label': 'Quantity' },
+        },
+        [
+          button('−', () => setQuantity(quantity - 1), {
+            title: 'Decrease fuel quantity',
+            className: 'vs-button--glyph',
+          }),
+          input,
+          button('+', () => setQuantity(quantity + 1), {
+            title: 'Increase fuel quantity',
+            className: 'vs-button--glyph',
+          }),
+          button('Fill tank', () => setQuantity(offer.maxQuantity), {
+            className: 'vs-button--compact',
+            title: `Take as much as credits, stock and tank allow (${offer.maxQuantity})`,
+            disabledReason: offer.maxQuantity < 1 ? 'Cannot buy any' : undefined,
+          }),
+        ],
+      ),
+      el(
+        'div',
+        {
+          className: 'vs-action-row',
+          attrs: { role: 'cell', 'data-label': 'Action' },
+        },
+        [
+          button(
+            `Buy ${quantity} FU · ${formatNumber(quantity * offer.price)} cr`,
+            () =>
+              dispatch({
+                type: 'dock-service',
+                service: 'refuel',
+                amount: quantity,
+              }),
+            {
+              className: 'vs-button--primary vs-button--compact',
+              icon: 'fuel',
+              disabledReason:
+                offer.disabledReason ??
+                (offer.maxQuantity < 1 ? 'Cannot buy any' : undefined),
+            },
+          ),
         ],
       ),
     ],
@@ -218,11 +348,17 @@ function marketRow(
     ),
     el('span', {
       text: `${row.playerQuantity} / ${row.stock}`,
-      attrs: { role: 'cell', 'data-label': 'You / stock' },
+      attrs: { role: 'cell', 'data-label': 'In hold / for sale' },
     }),
     el('span', {
-      text: `${row.buyPrice} / ${row.sellPrice} cr`,
-      attrs: { role: 'cell', 'data-label': 'Buy / sell' },
+      className: 'vs-market__price',
+      text: `${row.buyPrice} cr`,
+      attrs: { role: 'cell', 'data-label': 'Buy at' },
+    }),
+    el('span', {
+      className: 'vs-market__price',
+      text: `${row.sellPrice} cr`,
+      attrs: { role: 'cell', 'data-label': 'Sell at' },
     }),
     el(
       'div',
@@ -241,7 +377,7 @@ function marketRow(
             }),
           {
             title: `Decrease ${row.name} quantity`,
-            className: 'vs-button--icon',
+            className: 'vs-button--glyph',
           },
         ),
         input,
@@ -255,18 +391,37 @@ function marketRow(
             }),
           {
             title: `Increase ${row.name} quantity`,
-            className: 'vs-button--icon',
+            className: 'vs-button--glyph',
           },
         ),
         button(
-          'Max',
+          'Max buy',
           () =>
             dispatch({
               type: 'market-quantity',
               rowId: row.id,
               quantity: Math.max(1, buyLimit),
             }),
-          { className: 'vs-button--compact' },
+          {
+            className: 'vs-button--compact',
+            title: `Buy as many as credits, stock and hold allow (${buyLimit})`,
+            disabledReason: buyLimit < 1 ? 'Cannot buy any' : undefined,
+          },
+        ),
+        button(
+          'Max sell',
+          () =>
+            dispatch({
+              type: 'market-quantity',
+              rowId: row.id,
+              quantity: Math.max(1, row.playerQuantity),
+            }),
+          {
+            className: 'vs-button--compact',
+            title: `Sell the whole stack (${row.playerQuantity})`,
+            disabledReason:
+              row.playerQuantity < 1 ? 'None in the hold' : undefined,
+          },
         ),
       ],
     ),
@@ -278,7 +433,7 @@ function marketRow(
       },
       [
         button(
-          `Buy ${quantity}`,
+          `Buy ${quantity} · ${formatNumber(quantity * row.buyPrice)} cr`,
           () =>
             dispatch({
               type: 'market-trade',
@@ -289,7 +444,7 @@ function marketRow(
           { className: 'vs-button--compact', disabledReason: buyReason },
         ),
         button(
-          `Sell ${quantity}`,
+          `Sell ${quantity} · +${formatNumber(quantity * row.sellPrice)} cr`,
           () =>
             dispatch({
               type: 'market-trade',

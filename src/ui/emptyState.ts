@@ -77,6 +77,7 @@ export function emptyUiState(
       hull: zero,
       bombs: 0,
       market: [],
+      fuelOffer: { price: 1, stock: 0, quantity: 1, maxQuantity: 0 },
       modules: [],
     },
     records,

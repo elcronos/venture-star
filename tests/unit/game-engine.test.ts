@@ -23,6 +23,73 @@ describe('GameEngine command simulation', () => {
     expect(ship.fuelHundredths).toBeLessThan(8000);
   });
 
+  // M05: friendly fuel costs 1 cr/FU, neutral permitted access 3 cr/FU. The
+  // neutral rate was unreachable because refuel required player ownership,
+  // which stranded a player who ran dry anywhere but their own planets.
+  it.each([
+    ['player' as const, 1],
+    [null, 3],
+  ])('sells fuel at a %s planet for %i cr per unit', (owner, rate) => {
+    const state = createGame({ seed: SEED });
+    const planet = state.planets.find(
+      (candidate) => candidate.owner === owner,
+    )!;
+    const ship = state.ships[0]!;
+    state.launched = true;
+    ship.dockedPlanetId = planet.id;
+    ship.position = { ...planet.position };
+    ship.fuelHundredths = 1_000;
+    ship.credits = 500;
+    planet.market.fuel = 100;
+    const engine = new GameEngine(state);
+
+    engine.dispatch({ type: 'refuel', planetId: planet.id, amount: 12 });
+    engine.stepTicks(1);
+
+    const after = engine.snapshot().ships[0]!;
+    expect(after.fuelHundredths).toBe(1_000 + 12 * 100);
+    expect(after.credits).toBe(500 - 12 * rate);
+    expect(
+      engine.snapshot().planets.find((item) => item.id === planet.id)!.market
+        .fuel,
+    ).toBe(88);
+  });
+
+  it('refuses fuel when the tank is full and clears emergency drift on refuel', () => {
+    const state = createGame({ seed: SEED });
+    const planet = state.planets.find((candidate) => candidate.owner === null)!;
+    const ship = state.ships[0]!;
+    state.launched = true;
+    ship.dockedPlanetId = planet.id;
+    ship.position = { ...planet.position };
+    ship.credits = 500;
+    planet.market.fuel = 100;
+
+    ship.fuelHundredths = 0;
+    ship.emergency = true;
+    const engine = new GameEngine(state);
+    engine.dispatch({ type: 'refuel', planetId: planet.id, amount: 5 });
+    engine.stepTicks(1);
+    expect(engine.snapshot().ships[0]!.emergency).toBe(false);
+
+    // A full tank buys nothing and is charged nothing.
+    const fullState = createGame({ seed: SEED });
+    const fullPlanet = fullState.planets.find(
+      (candidate) => candidate.owner === null,
+    )!;
+    const fullShip = fullState.ships[0]!;
+    fullState.launched = true;
+    fullShip.dockedPlanetId = fullPlanet.id;
+    fullShip.position = { ...fullPlanet.position };
+    fullShip.credits = 500;
+    fullShip.fuelHundredths = fullShip.stats.fuelCapacity * 100;
+    fullPlanet.market.fuel = 100;
+    const topped = new GameEngine(fullState);
+    topped.dispatch({ type: 'refuel', planetId: fullPlanet.id, amount: 5 });
+    topped.stepTicks(1);
+    expect(topped.snapshot().ships[0]!.credits).toBe(500);
+  });
+
   it('mines finite cargo without consuming a node beyond hold capacity', () => {
     const state = createGame({ seed: SEED });
     const ship = state.ships[0]!;

@@ -169,6 +169,18 @@ export interface ModuleCard {
   disabledReason?: string;
 }
 
+export interface FuelOffer {
+  /** Credits per fuel unit at this planet. */
+  price: number;
+  /** Units the planet still has to sell. */
+  stock: number;
+  /** Units the player has chosen to buy. */
+  quantity: number;
+  /** The most the player could take right now, given credits, stock and tank. */
+  maxQuantity: number;
+  disabledReason?: string;
+}
+
 export interface DockState {
   planetName: string;
   owner: Relation;
@@ -184,6 +196,7 @@ export interface DockState {
   influence?: number;
   resistance?: number;
   market: MarketRow[];
+  fuelOffer: FuelOffer;
   modules: ModuleCard[];
   selectedMarketId?: string;
   selectedModuleId?: string;
@@ -325,6 +338,7 @@ export type UiAction =
   | {
       type: 'dock-service';
       service: 'refuel' | 'repair' | 'buy-bomb' | 'influence';
+      amount?: number;
     }
   | { type: 'select-record'; recordId: string }
   | { type: 'delete-record'; recordId: string }

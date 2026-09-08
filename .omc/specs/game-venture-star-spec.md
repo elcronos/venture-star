@@ -795,7 +795,9 @@ If invalid, increment a generation `salt` and regenerate, up to 256 attempts. At
 
 **Edges/failures:** normal fuel never becomes negative. Equipment swap cannot reduce tank below current fuel; excess is sold back at friendly price, or swap is blocked if no market. Forecast labels unknown hazards but does not invent extra burn. Emergency return mode is not a fuel quantity, cannot be sold/upgraded, and remains available until a legal refuel source is reached.
 
-**Tests:** `T-M05-001` burn curve; `T-M05-002` cruise is negligible only when unpowered; `T-M05-003` reserve restrictions; `T-M05-004` debt rescue; `T-M05-005` AI/player parity; `T-M05-006` forecast margin; `T-M05-007` tank downsizing.
+**Fuel is a market commodity, not a service button.** It is quoted per unit alongside materials, bought in a chosen quantity, and priced by the same ownership rule as any other access: `1 cr/FU` at a planet the player controls, `3 cr/FU` at a neutral port, refused at a hostile one. Gating refuelling on player ownership strands a player who runs dry anywhere else, which the emergency-drift rule already assumes cannot happen. Repairs and bomb construction remain services of a planet the player controls, and say so rather than disappearing.
+
+**Tests:** `T-M05-001` burn curve; `T-M05-002` cruise is negligible only when unpowered; `T-M05-003` reserve restrictions; `T-M05-008` both rates charge correctly and a neutral port sells through the market UI; `T-M05-004` debt rescue; `T-M05-005` AI/player parity; `T-M05-006` forecast margin; `T-M05-007` tank downsizing.
 
 ### M06 — Autopilot and interruption [v0]
 
@@ -2512,6 +2514,8 @@ HUD elements are ordered by urgency and may collapse only from the bottom of thi
 4. **Navigation:** sector coordinates, danger band, minimap position, route next step, wrap indicator, route fuel forecast. The minimap is itself the control that opens the galaxy map, and it fires a scan pulse on the live sector before the galaxy pauses the simulation.
 5. **Economy:** cargo used/capacity, credits, carried material totals.
 6. **Strategy:** planet-count progress, research/production summary, noncritical alerts. The current objective is not shown on the flight HUD — it competes with the context bar for the same screen edge — and appears in the pause menu instead.
+
+Market rows quote buy and sell prices in separate labelled columns, never a combined `buy / sell` pair, and every trade control states the total it will move: `Buy 5 · 45 cr`, `Sell 5 · +35 cr`. `Max buy` and `Max sell` are distinct, because the largest legal buy and the whole held stack are different numbers. A button whose label is its own glyph keeps that label visible; the icon-button treatment that hides labels is only for buttons carrying an icon.
 
 Bars include numeric values when focused, in critical state, or `Show HUD numbers` is enabled; the default always shows `fuel current/max`, `cargo used/max`, and bomb count numerically. Shield/armour/hull use distinct icons and line treatments. Health order remains shield over armour over hull in every layout. Critical hull (`<25%`) uses the word `CRITICAL`, triangular warning icon, and optional pulse; reduced motion replaces pulse with a static double border.
 

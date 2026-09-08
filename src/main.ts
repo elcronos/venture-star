@@ -9,6 +9,7 @@ import {
   blocked,
   bombBlockedReason,
   dockBlockedReason,
+  fuelQuote,
   miningBlockedReason,
 } from './game/interactions';
 import { cargoUsed, wrappedDelta, wrappedDistance } from './game/math';
@@ -424,7 +425,7 @@ function dispatchUi(action: UiAction): void {
       fitModule(action.moduleId);
       break;
     case 'dock-service':
-      useDockService(action.service);
+      useDockService(action.service, action.amount);
       break;
     case 'select-record':
       uiState.selectedRecordId = action.recordId;
@@ -666,12 +667,14 @@ function fitModule(moduleId: string): void {
 
 function useDockService(
   service: 'refuel' | 'repair' | 'buy-bomb' | 'influence',
+  amount?: number,
 ): void {
   if (!engine) return;
   const ship = playerShip(engine.snapshot());
   const planetId = ship.dockedPlanetId;
   if (!planetId) return;
-  if (service === 'refuel') send({ type: 'refuel', planetId, amount: 10 });
+  if (service === 'refuel')
+    send({ type: 'refuel', planetId, amount: amount ?? 10 });
   else if (service === 'repair') send({ type: 'repair', planetId });
   else if (service === 'buy-bomb')
     send({ type: 'buyBomb', planetId, quantity: 1 });
@@ -987,6 +990,10 @@ function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
           resistance: planet.resistance,
         }
       : {}),
+    fuelOffer: {
+      ...fuelQuote(state, ship, planet),
+      quantity: Math.max(1, marketQuantities['fuel'] ?? 10),
+    },
     market: materials.map((material) => ({
       id: material,
       material,

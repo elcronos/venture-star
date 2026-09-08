@@ -1,5 +1,6 @@
 import { cargoUsed } from './math';
 import {
+  fuelRate,
   BOMB_RANGE_MILLI,
   DOCK_SPEED_MILLI,
   INTERACTION_RANGE_MILLI,
@@ -14,6 +15,42 @@ import {
   type ResourceNode,
   type Ship,
 } from './types';
+
+export interface FuelQuote {
+  price: number;
+  stock: number;
+  maxQuantity: number;
+  disabledReason?: string;
+}
+
+/** What this planet will sell the player in fuel, and why it might not. */
+export function fuelQuote(
+  state: GameState,
+  ship: Ship,
+  planet: Planet,
+): FuelQuote {
+  const price = fuelRate(planet);
+  const space = Math.floor(ship.stats.fuelCapacity - ship.fuelHundredths / 100);
+  const affordable = Math.floor(ship.credits / price);
+  const maxQuantity = Math.max(
+    0,
+    Math.min(planet.market.fuel, space, affordable),
+  );
+  return {
+    price,
+    stock: planet.market.fuel,
+    maxQuantity,
+    ...(state.tick < planet.serviceLockUntilTick
+      ? { disabledReason: 'Services are locked after a recent action' }
+      : space <= 0
+        ? { disabledReason: 'Tank is already full' }
+        : planet.market.fuel <= 0
+          ? { disabledReason: 'Planet has no fuel to sell' }
+          : affordable <= 0
+            ? { disabledReason: `Need at least ${price} credits` }
+            : {}),
+  };
+}
 
 export const INTERACTION_RANGE_WU = INTERACTION_RANGE_MILLI / SCALE;
 export const BOMB_RANGE_WU = BOMB_RANGE_MILLI / SCALE;

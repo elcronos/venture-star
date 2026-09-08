@@ -26,6 +26,11 @@ import {
 } from './types';
 import { z } from 'zod';
 
+/** Credits per fuel unit: friendly supply is subsidised, neutral is not. */
+export function fuelRate(planet: Planet): number {
+  return planet.owner === 'player' ? 1 : 3;
+}
+
 export const INTERACTION_RANGE_MILLI = 96 * SCALE;
 /** Docking is refused above this closing speed. */
 export const DOCK_SPEED_MILLI = 20 * SCALE;
@@ -784,13 +789,16 @@ export class GameEngine {
 
   private refuel(ship: Ship, planetId: string, amount: number): void {
     const planet = dockedAt(this.state, ship, planetId);
-    if (!planet || planet.owner !== 'player' || amount <= 0) return;
+    // M05: friendly fuel is 1 cr/FU, neutral permitted access 3 cr/FU, hostile
+    // denies refuelling. Docking already refuses rival-held planets.
+    if (!planet || amount <= 0) return;
+    if (planet.owner !== 'player' && planet.owner !== null) return;
     const units = Math.min(
       Math.floor(amount),
       planet.market.fuel,
       ship.stats.fuelCapacity - ship.fuelHundredths / 100,
     );
-    const rate = planet.owner === 'player' ? 1 : 3;
+    const rate = fuelRate(planet);
     if (units <= 0 || ship.credits < units * rate) return;
     ship.credits -= units * rate;
     planet.market.fuel -= units;

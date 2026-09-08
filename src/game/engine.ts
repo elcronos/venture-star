@@ -6,6 +6,7 @@ export {
   MINING_SPEED_MILLI,
   MINING_THROTTLE_MAX_BP,
   GameEngine,
+  fuelRate,
   canonicalStringify,
   deserializeGame,
   serializeGame,

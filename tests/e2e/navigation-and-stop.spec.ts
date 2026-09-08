@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { startCampaignFromHome } from './helpers';
+import { flyToEntity, startCampaignFromHome } from './helpers';
 
 async function launch(page: import('@playwright/test').Page): Promise<void> {
   await startCampaignFromHome(page);
@@ -503,4 +503,72 @@ test('T-M06-010: one tap on a deposit both selects it and starts the approach', 
     }),
   ).toBe(target.id);
   await expect(page.locator('.vs-autopilot')).toBeVisible();
+});
+
+test('T-M05-008: a neutral port sells fuel by the unit, with the cost shown', async ({
+  page,
+}) => {
+  await startCampaignFromHome(page);
+  const neutral = await page.evaluate(() => {
+    const state = window.__GAME__!.state!;
+    const planet = state.planets.find((item) => item.owner === null)!;
+    return { id: planet.id, name: planet.name };
+  });
+
+  // Fly the real simulation to a planet the player does not own, burning fuel
+  // on the way. This is the situation that used to strand a player: a full
+  // market in reach, and no way to buy fuel from it.
+  await page.evaluate(() => {
+    window.__GAME__!.input({ type: 'launch' });
+    window.__GAME__!.tick(1);
+  });
+  await flyToEntity(page, neutral.id);
+  await page.evaluate((id) => {
+    window.__GAME__!.input({ type: 'dock', planetId: id });
+    window.__GAME__!.tick(1);
+  }, neutral.id);
+
+  const state = () =>
+    page.evaluate(() => {
+      const snapshot = window.__GAME__!.state!;
+      const ship = snapshot.ships.find(
+        (candidate) => candidate.id === snapshot.playerShipId,
+      )!;
+      return {
+        fuel: ship.fuelHundredths,
+        credits: ship.credits,
+        docked: ship.dockedPlanetId,
+      };
+    });
+  await expect.poll(async () => (await state()).docked).toBe(neutral.id);
+
+  await page.getByRole('button', { name: 'Market' }).first().click();
+  const fuelRow = page.locator('.vs-market__row.is-fuel');
+  await expect(fuelRow).toBeVisible();
+  // M05 prices neutral permitted access at 3 cr/FU against 1 at your own.
+  await expect(fuelRow.locator('.vs-market__price')).toHaveText('3 cr');
+
+  const buy = fuelRow.getByRole('button', { name: /^Buy \d+ FU · \d+ cr$/ });
+  await expect(buy).toBeEnabled();
+  await expect
+    .poll(async () => {
+      const text = (await buy.textContent()) ?? '';
+      const offered = Number(/Buy (\d+) FU/.exec(text)?.[1] ?? 0);
+      const { fuel } = await state();
+      return offered === Math.min(10, Math.floor(80 - fuel / 100));
+    })
+    .toBe(true);
+
+  const before = await state();
+  const [, units, cost] = /Buy (\d+) FU · (\d+) cr/.exec(
+    (await buy.textContent())!,
+  )!;
+  // The button states the exact price of the exact quantity it will buy.
+  expect(Number(cost)).toBe(Number(units) * 3);
+
+  await buy.click();
+  await expect.poll(async () => (await state()).fuel).toBe(
+    before.fuel + Number(units) * 100,
+  );
+  expect((await state()).credits).toBe(before.credits - Number(cost));
 });

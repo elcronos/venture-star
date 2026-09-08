@@ -43,6 +43,8 @@ button, input, select, a { touch-action: manipulation; }
 .vs-button--compact { min-height: 48px; padding: .5rem .75rem; }
 .vs-button--icon { padding: .65rem; }
 .vs-button--icon span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+/* For buttons whose label IS the glyph, so it must stay visible. */
+.vs-button--glyph { min-width: 48px; min-height: 48px; padding: .5rem; justify-content: center; font-size: 1.15rem; line-height: 1; }
 .vs-button--special { min-width: 64px; min-height: 64px; margin-left: 12px; }
 
 .vs-panel, .vs-layer, .vs-objective {
@@ -167,7 +169,13 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
 .vs-stat-card strong { grid-column: 2; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .vs-module-card.is-installed { border-color: var(--vs-teal); }
 .vs-market { display: grid; }
-.vs-market__header, .vs-market__row { display: grid; grid-template-columns: minmax(12rem, 1.5fr) 1fr 1fr minmax(14rem, 1.5fr) minmax(12rem, 1.5fr); align-items: center; gap: .7rem; padding: .7rem; border-bottom: var(--vs-border); }
+.vs-market__header, .vs-market__row { display: grid; grid-template-columns: minmax(10rem, 1.2fr) 7rem 4.5rem 4.5rem minmax(17rem, auto) minmax(17rem, auto); align-items: center; gap: .6rem; padding: .7rem; border-bottom: var(--vs-border); }
+.vs-market__row .vs-action-row { flex-wrap: nowrap; }
+.vs-market__row .vs-stepper .vs-button { white-space: nowrap; }
+.vs-market__row .vs-action-row .vs-button { white-space: nowrap; }
+.vs-market__price { font-variant-numeric: tabular-nums; }
+.vs-market__row.is-fuel { border-top: 2px solid var(--vs-grid); background: rgb(45 182 163 / 6%); }
+.vs-market__footnote { display: flex; align-items: center; gap: .5rem; margin: .75rem 0 0; color: var(--vs-text-secondary); font-size: .85rem; }
 .vs-market__header { color: var(--vs-text-secondary); font-weight: 700; }
 .vs-market__material { display: flex; align-items: center; gap: .6rem; }
 .vs-market__material span { display: block; color: var(--vs-text-secondary); font-size: .8rem; }
