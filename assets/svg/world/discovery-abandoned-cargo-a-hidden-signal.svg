@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="hidden-signal-a">
+    <path d="M24 75a43 43 0 0 1 69-34M103 53a43 43 0 0 1-20 48" stroke="#2DB6A3" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 8" opacity=".55"/>
+    <path d="m24 42 8-5M98 82l9 4M45 108l-2 9" stroke="#91C9E8" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+    <g id="cargo-silhouette" stroke="#17324A" stroke-linejoin="round">
+      <path d="m38 58 16-15 36 8 4 36-17 13-35-8Z" fill="#10233B" stroke-width="6"/>
+      <path d="m54 43 7 15 29-7M42 92l18-14 34 9" stroke="#7E94AA" stroke-width="3" opacity=".6"/>
+      <circle cx="65" cy="70" r="7" fill="#F5A623" stroke-width="4" opacity=".7"/>
+    </g>
+    <path d="m105 27 5 7-5 7-5-7Z" fill="#F07BD7" stroke="#17324A" stroke-width="3"/>
+  </g>
+</svg>

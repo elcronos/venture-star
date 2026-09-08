@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="rival-f1-damaged" stroke="#17324A" stroke-linejoin="round">
+    <path id="chipped-spear-hull" d="M64 9 111 89 88 82 82 91 75 80 64 118 46 80 17 89Z" fill="#F5A623" stroke-width="6"/>
+    <path id="left-armour-plane" d="M64 18 50 75 25 83Z" fill="#F4F1E8" stroke-width="4"/>
+    <path id="damaged-right-plane" d="m64 18 39 65-15-5-6 8-7-11Z" fill="#B9C9DA" stroke-width="4"/>
+    <path id="shadow-keel" d="M50 75 64 99 75 80 64 25Z" fill="#10233B" stroke-width="4"/>
+    <g id="diagonal-faction-hatch" stroke="#F5A623" stroke-width="3" stroke-linecap="round">
+      <path d="m31 72 12 12"/><path d="m38 60 14 14"/><path d="m91 63-10 10"/>
+    </g>
+    <g id="split-diamond-emblem" stroke-width="3">
+      <path d="m62 43-9 10 9 10Z" fill="#F5A623"/>
+      <path d="m66 43 9 10-9 10Z" fill="#F5A623"/>
+    </g>
+    <circle cx="64" cy="82" r="5" fill="#91C9E8" stroke-width="3"/>
+    <path id="damage-fracture" d="m85 49-9 10 8 7-12 12" stroke="#F26B52" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <g id="damage-sparks" fill="#F26B52" stroke="#17324A" stroke-width="2" stroke-linejoin="round">
+    <path d="m103 48 4-7 2 8Z"/><path d="m110 59 7-1-5 5Z"/>
+  </g>
+</svg>

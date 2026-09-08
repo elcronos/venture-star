@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="scan-rare" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 64 33 24A51 51 0 0 1 81 16Z" fill="#F07BD7" opacity=".16"/>
+    <circle cx="64" cy="64" r="50" stroke="#2DB6A3" stroke-width="5" stroke-dasharray="18 9 4 9"/>
+    <circle cx="64" cy="64" r="34" stroke="#91C9E8" stroke-width="3" stroke-dasharray="8 9" opacity=".8"/>
+    <path d="M64 8v10M64 110v10M8 64h10M110 64h10" stroke="#BDFBFF" stroke-width="4"/>
+    <path d="M64 64 33 24" stroke="#F07BD7" stroke-width="3"/>
+    <circle cx="64" cy="64" r="5" fill="#BDFBFF" stroke="#17324A" stroke-width="3"/>
+    <path d="m39 27 8 8-8 8-8-8Z" fill="#F07BD7" stroke="#17324A" stroke-width="4"/>
+    <path d="M39 17v5M39 48v5M21 35h5M52 35h5" stroke="#F4F1E8" stroke-width="3"/>
+    <path d="m91 83 4 1 2 4-3 4-5-1-1-4Z" fill="#2DB6A3" stroke="#17324A" stroke-width="3"/>
+  </g>
+</svg>

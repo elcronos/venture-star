@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="rival-f1-idle" stroke="#17324A" stroke-linejoin="round">
+    <path id="closed-spear-hull" d="M64 9 111 89 82 80 64 118 46 80 17 89Z" fill="#F5A623" stroke-width="6"/>
+    <path id="left-armour-plane" d="M64 18 50 75 25 83Z" fill="#F4F1E8" stroke-width="4"/>
+    <path id="right-armour-plane" d="M64 18 103 83 78 75Z" fill="#F4F1E8" stroke-width="4"/>
+    <path id="shadow-keel" d="M50 75 64 99 78 75 64 25Z" fill="#10233B" stroke-width="4"/>
+    <g id="diagonal-faction-hatch" stroke="#F5A623" stroke-width="3" stroke-linecap="round">
+      <path d="m31 72 12 12"/><path d="m38 60 14 14"/>
+      <path d="m97 72-12 12"/><path d="m90 60-14 14"/>
+    </g>
+    <g id="split-diamond-emblem" stroke-width="3">
+      <path d="m62 43-9 10 9 10Z" fill="#F5A623"/>
+      <path d="m66 43 9 10-9 10Z" fill="#F5A623"/>
+    </g>
+    <circle id="idle-reactor" cx="64" cy="82" r="5" fill="#91C9E8" stroke-width="3"/>
+  </g>
+</svg>

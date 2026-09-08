@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="metal-full" stroke="#17324A" stroke-linejoin="round">
+    <path d="m9 42 8-22 18-10 18 14 2 21-16 11-20-3Z" fill="#8FA6B8" stroke-width="3"/>
+    <path d="m17 20 18 11 18-7M35 10v21m0 0 4 25M17 40l18-9 20 14" stroke-width="2"/>
+    <path d="m18 25 7 4-3 9-8-3Zm23-8 8 6-8 5-5-5Z" fill="#F4F1E8" stroke-width="2"/>
+  </g>
+</svg>

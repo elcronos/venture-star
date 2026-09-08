@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="player-engine-brake" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 31h12l-2 12H19Zm18 0h12l-2 12H37Z" fill="#10233B" stroke="#17324A" stroke-width="3"/>
+    <path d="m20 31-6-18 8 5 2-10 4 23m16 0 6-18-8 5-2-10-4 23" fill="#F5A623" stroke="#17324A" stroke-width="3"/>
+    <path d="m20 27-3-9m27 9 3-9" stroke="#BDFBFF" stroke-width="2"/>
+    <path d="M20 50h24" fill="none" stroke="#91C9E8" stroke-width="2" stroke-dasharray="4 5"/>
+  </g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <g id="hazard-region">
+    <path d="M0 62c45 8 83 8 128 0s86-20 128 0v132c-45-9-86-8-128 0s-85 10-128 0Z" fill="#10233B" opacity=".48"/>
+    <path d="M0 62c45 8 83 8 128 0s86-20 128 0M0 194c43 10 85 8 128 0s83-9 128 0" stroke="#F26B52" stroke-width="6" stroke-dasharray="18 12" opacity=".85"/>
+  </g>
+  <g id="asteroids" fill="#8FA6B8" stroke="#17324A" stroke-width="8" stroke-linejoin="round">
+    <path d="m-17 146 17-25 29 6 11 25-18 21-29-5Z"/><path d="m239 146 17-25 29 6 11 25-18 21-29-5Z"/>
+    <path d="m55 111 20-28 31 8 10 28-20 24-31-6Z"/><path d="m144 89 13-19 22 4 9 20-14 17-22-4Z"/>
+    <path d="m167 171 20-28 31 7 11 28-20 24-31-6Z"/>
+  </g>
+  <g fill="none" stroke="#F4F1E8" stroke-width="5" stroke-linecap="round">
+    <path d="m-1 140 18 11m56-54 20 15m64-28 16 11m12 63 20 17m50-35 18 11"/>
+  </g>
+</svg>

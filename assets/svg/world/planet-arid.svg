@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="arid-body" cx="34%" cy="28%" r="76%">
+      <stop offset="0" stop-color="#F5A623"/>
+      <stop offset="1" stop-color="#C98A63"/>
+    </radialGradient>
+    <clipPath id="arid-clip"><circle cx="128" cy="128" r="104"/></clipPath>
+  </defs>
+  <g id="planet-body" clip-path="url(#arid-clip)">
+    <circle cx="128" cy="128" r="104" fill="url(#arid-body)"/>
+    <path d="M17 91c41-17 74-13 105 2 33 17 70 17 117-4l4 39c-37 22-76 25-116 8-34-14-70-13-109 5z" fill="#F4F1E8" fill-opacity=".72"/>
+    <path d="M28 166c35-17 70-18 105-2 30 14 60 16 91 4l-14 32c-25 22-59 34-94 32-42-2-75-21-95-48z" fill="#C98A63"/>
+    <g id="dune-lines" fill="none" stroke="#17324A" stroke-width="5" stroke-linecap="round" opacity=".5">
+      <path d="M56 66c27-13 53-13 78 0"/>
+      <path d="M136 190c25-11 48-10 68 2"/>
+    </g>
+  </g>
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#17324A" stroke-width="10"/>
+</svg>

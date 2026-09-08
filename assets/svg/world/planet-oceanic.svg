@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="ocean-body" cx="34%" cy="28%" r="76%">
+      <stop offset="0" stop-color="#BDFBFF"/>
+      <stop offset="1" stop-color="#91C9E8"/>
+    </radialGradient>
+    <clipPath id="ocean-clip"><circle cx="128" cy="128" r="104"/></clipPath>
+  </defs>
+  <g id="planet-body" clip-path="url(#ocean-clip)">
+    <circle cx="128" cy="128" r="104" fill="url(#ocean-body)"/>
+    <path d="M41 74c19-20 47-31 73-33l22 20-12 22-31 11-11 28-32-6-25-20zM157 122l26-17 43 14 11 36-18 28-35 5-26-20-13-27z" fill="#2DB6A3"/>
+    <path d="M20 157c39-12 65-8 92 4 30 14 69 13 121-3l-5 34c-30 28-66 40-102 40-50 0-91-25-106-60z" fill="#91C9E8" fill-opacity=".72"/>
+    <path d="M35 70c50-28 123-37 183-5" fill="none" stroke="#F4F1E8" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+  </g>
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#17324A" stroke-width="10"/>
+</svg>

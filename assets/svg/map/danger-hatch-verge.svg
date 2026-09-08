@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="verge-boundary" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 18L18 4M4 34L34 4M4 50L50 4M10 60L60 10M26 60L60 26M42 60L60 42" stroke="#F26B52" stroke-width="3" opacity=".78"/>
+    <path d="M32 14l15 27H17z" fill="#091426" stroke="#17324A" stroke-width="3"/>
+    <path d="M32 22v12" stroke="#F26B52" stroke-width="3"/>
+    <circle cx="32" cy="38" r="2" fill="#F26B52"/>
+    <path d="M6 56h12M46 8h12" stroke="#F26B52" stroke-width="3"/>
+  </g>
+</svg>

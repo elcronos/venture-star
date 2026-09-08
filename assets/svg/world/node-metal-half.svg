@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="metal-half" stroke="#17324A" stroke-linejoin="round">
+    <path d="m11 47 9-16 14-6 16 9 3 14-14 9-19-3Z" fill="#8FA6B8" stroke-width="3"/>
+    <path d="m20 31 14 9 16-6M34 25v15m0 0 5 17M20 45l14-5 19 8" stroke-width="2"/>
+    <path d="m21 35 6 3-4 7-7-3Z" fill="#F4F1E8" stroke-width="2"/>
+  </g>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="crystal-half" stroke="#17324A" stroke-linejoin="round">
+    <path d="m18 56-5-14 11-14 8 10 8-9 12 14-5 13Z" fill="#60AFFF" stroke-width="3"/>
+    <path d="m13 42 13 3 6-7 8 9 12-4M26 45l-8 11m22-9 7 9M24 28l2 17" stroke-width="2"/>
+    <path d="m24 34 5 5-3 4-4-5Z" fill="#BDFBFF" stroke-width="2"/>
+  </g>
+</svg>

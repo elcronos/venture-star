@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="verdant-body" cx="34%" cy="28%" r="76%">
+      <stop offset="0" stop-color="#9EDB6B"/>
+      <stop offset="1" stop-color="#2DB6A3"/>
+    </radialGradient>
+    <clipPath id="verdant-clip"><circle cx="128" cy="128" r="104"/></clipPath>
+  </defs>
+  <g id="planet-body" clip-path="url(#verdant-clip)">
+    <circle cx="128" cy="128" r="104" fill="url(#verdant-body)"/>
+    <path d="M18 101c26-22 55-26 78-9l19 28-16 32-44 14-38-17zM139 28c30 3 59 19 77 42l-7 38-33 14-31-22-15-39zM124 176l30-27 41 8 30 34c-23 28-58 43-96 43l-20-26z" fill="#9EDB6B"/>
+    <path d="M18 133c37 3 56-2 78-16 31-20 61-17 83-2 18 12 39 16 62 13" fill="none" stroke="#91C9E8" stroke-width="10" stroke-linecap="round"/>
+    <path d="M39 69c30-28 71-39 111-33" fill="none" stroke="#F4F1E8" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+  </g>
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#17324A" stroke-width="10"/>
+</svg>

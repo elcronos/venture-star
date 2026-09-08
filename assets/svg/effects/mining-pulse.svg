@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <g id="mining-pulse" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="64" cy="64" r="48" stroke="#2DB6A3" stroke-width="4" stroke-dasharray="16 10"/>
+    <circle cx="64" cy="64" r="35" stroke="#91C9E8" stroke-width="3" stroke-dasharray="4 9" opacity=".85"/>
+    <path d="m64 27 8 14H56Zm37 58-16-1 8-14ZM27 85l8-15 8 14Z" fill="#C98A63" stroke="#17324A" stroke-width="3"/>
+    <path d="M64 42v12m29 17-10 6m-48 0-10-6" stroke="#F5A623" stroke-width="4"/>
+    <path d="m54 70 10-18 10 18-10 12Z" fill="#C98A63" stroke="#17324A" stroke-width="4"/>
+    <path d="m59 68 5-9 5 9-5 6Z" fill="#F4F1E8"/>
+  </g>
+</svg>

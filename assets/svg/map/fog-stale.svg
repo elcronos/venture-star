@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <g id="stale-fog" fill="none" stroke="#7E94AA" stroke-linecap="round">
+    <path d="M8 20h28M58 20h18M102 20h42M174 20h20M220 20h28M24 72h42M92 72h20M138 72h54M220 72h20M8 124h22M54 124h54M136 124h30M192 124h56M20 176h54M102 176h18M148 176h42M218 176h22M8 228h36M72 228h44M144 228h24M194 228h54" stroke-width="4" opacity=".55"/>
+    <path d="M20 8v28M72 54v32M124 106v34M176 158v32M228 210v38" stroke="#1B3852" stroke-width="3" opacity=".72"/>
+    <circle cx="128" cy="128" r="22" stroke="#91C9E8" stroke-width="4" stroke-dasharray="10 10" opacity=".38"/>
+  </g>
+</svg>

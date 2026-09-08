@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="pulse-impact" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="32" cy="32" r="8" fill="#BDFBFF" stroke="#17324A" stroke-width="4"/>
+    <circle cx="32" cy="32" r="18" stroke="#2DB6A3" stroke-width="4" stroke-dasharray="12 7"/>
+    <path d="M32 4v10M32 50v10M4 32h10M50 32h10M12 12l7 7M45 45l7 7M52 12l-7 7M19 45l-7 7" stroke="#91C9E8" stroke-width="3"/>
+    <path d="m32 21 4 7 7 4-7 4-4 7-4-7-7-4 7-4Z" fill="#F4F1E8" stroke="none"/>
+  </g>
+</svg>

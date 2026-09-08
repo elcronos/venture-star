@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="ore-half" stroke="#17324A" stroke-linejoin="round">
+    <path d="m11 47 7-13 12-4 8 7 10-1 5 12-12 8-19-2Z" fill="#C98A63" stroke-width="3"/>
+    <path d="m18 34 7 10 13-7 3 11 12 0M25 44l-3 10m16-17 3 19" stroke-width="2"/>
+    <path d="m25 34 5-2 4 4-7 4Z" fill="#F5A623" stroke-width="2"/>
+  </g>
+</svg>

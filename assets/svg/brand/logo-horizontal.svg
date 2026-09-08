@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 192" role="img" aria-labelledby="title desc">
+  <title id="title">Venture Star</title>
+  <desc id="desc">Venture Star custom geometric wordmark with a compass-star navigation emblem.</desc>
+  <g id="brand-mark" transform="translate(12 20)">
+    <path d="M10 110 72 18l62 92-23 12-39-58-39 58z" fill="#17324A" stroke="#F4F1E8" stroke-width="7" stroke-linejoin="round"/>
+    <path d="m24 107 48-72v29l-39 58zM120 107 72 35v29l39 58z" fill="#2DB6A3"/>
+    <path d="m72 45 9 20 20 9-20 9-9 20-9-20-20-9 20-9z" fill="#F4F1E8" stroke="#17324A" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="72" cy="74" r="8" fill="#F5A623"/>
+    <path d="M23 35a70 70 0 0 1 24-18M97 17a70 70 0 0 1 24 18M121 133a70 70 0 0 1-24 18M47 151a70 70 0 0 1-24-18" fill="none" stroke="#91C9E8" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <g id="venture" fill="#F4F1E8" transform="translate(8) scale(.95 1)">
+    <path d="m166 36 11 0 13 43 13-43h11l-19 58h-10z"/>
+    <path d="M221 36h37v10h-26v13h22v10h-22v15h27v10h-38z"/>
+    <path d="M267 36h10l24 37V36h11v58h-10l-24-37v37h-11z"/>
+    <path d="M320 36h45v10h-17v48h-11V46h-17z"/>
+    <path d="M372 36h11v37c0 8 4 12 12 12s12-4 12-12V36h11v38c0 14-9 21-23 21s-23-7-23-21z"/>
+    <path fill-rule="evenodd" d="M429 36h23c14 0 22 7 22 18 0 8-4 14-11 17l14 23h-13l-12-20h-12v20h-11zm11 10v18h11c8 0 12-3 12-9s-4-9-12-9z"/>
+    <path d="M482 36h18v10h-7v13h7v10h-7v15h8v10h-19z"/>
+  </g>
+  <g id="star" fill="#B9C9DA">
+    <path d="M166 108h36v10h-25v12h20c10 0 16 6 16 16s-7 17-19 17h-28v-10h27c6 0 9-2 9-7s-3-6-8-6h-28z"/>
+    <path d="M219 108h46v10h-17v45h-11v-45h-18z"/>
+    <path fill-rule="evenodd" d="m285 108 22 55h-12l-4-11h-23l-4 11h-12l22-55zm-13 34h15l-7-20z"/>
+    <path fill-rule="evenodd" d="M316 108h24c15 0 23 7 23 18 0 8-4 14-12 17l14 20h-14l-12-18h-12v18h-11zm11 10v17h12c8 0 12-3 12-9s-4-8-12-8z"/>
+  </g>
+  <path id="signal-line" d="M380 158h42l10-9 12 9h56" fill="none" stroke="#2DB6A3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="432" cy="149" r="4" fill="#F5A623"/>
+</svg>

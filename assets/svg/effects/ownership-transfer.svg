@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <g id="ownership-transfer" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="128" cy="128" r="83" stroke="#17324A" stroke-width="18"/>
+    <path d="M128 45a83 83 0 0 1 0 166" stroke="#2DB6A3" stroke-width="11"/>
+    <path d="M128 211a83 83 0 0 1 0-166" stroke="#F5A623" stroke-width="11" stroke-dasharray="15 10"/>
+    <path d="M83 128h79" stroke="#BDFBFF" stroke-width="7"/>
+    <path d="m148 108 20 20-20 20" stroke="#BDFBFF" stroke-width="7"/>
+    <path d="m128 79 15 34 35 15-35 15-15 34-15-34-35-15 35-15Z" fill="#10233B" stroke="#17324A" stroke-width="8"/>
+    <circle cx="128" cy="128" r="13" fill="#2DB6A3" stroke="#BDFBFF" stroke-width="5"/>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <g id="active-shipyard" stroke="#17324A" stroke-linejoin="round">
+    <g id="orbital-service-ring" fill="none" stroke-width="10" stroke-linecap="round">
+      <path d="M49 89a87 87 0 0 1 158 0" stroke="#F4F1E8"/>
+      <path d="M207 167a87 87 0 0 1-158 0" stroke="#F4F1E8"/>
+      <path d="M37 116v24M219 116v24" stroke="#2DB6A3"/>
+    </g>
+    <g id="dock-spokes" fill="#10233B" stroke-width="8">
+      <path d="m66 103 42 15v20l-42 15-15-25Z"/>
+      <path d="m190 103-42 15v20l42 15 15-25Z"/>
+      <path d="m103 66 15 42h20l15-42-25-15Z"/>
+      <path d="m103 190 15-42h20l15 42-25 15Z"/>
+    </g>
+    <circle id="central-hub" cx="128" cy="128" r="39" fill="#F4F1E8" stroke-width="10"/>
+    <circle id="active-reactor" cx="128" cy="128" r="20" fill="#2DB6A3" stroke-width="6"/>
+    <path id="dock-axis" d="M128 108v40M108 128h40" stroke="#17324A" stroke-width="6" stroke-linecap="round"/>
+    <g id="active-service-beacons" fill="#F5A623" stroke-width="5">
+      <path d="m128 21 10 13-10 13-10-13Z"/><path d="m235 128-13 10-13-10 13-10Z"/>
+      <path d="m128 235-10-13 10-13 10 13Z"/><path d="m21 128 13-10 13 10-13 10Z"/>
+    </g>
+  </g>
+</svg>

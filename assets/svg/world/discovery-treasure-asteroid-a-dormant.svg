@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="dormant-treasure-a" stroke="#17324A" stroke-linejoin="round">
+    <path d="m25 56 13-26 31-10 27 14 12 29-13 32-31 13-30-16Z" fill="#8FA6B8" stroke-width="6"/>
+    <path d="m38 30 22 17 9-27M60 47l-8 23 18 13-6 25M52 70l-18 22M70 83l25 12M70 83l26-49" stroke="#17324A" stroke-width="4" stroke-linecap="round"/>
+    <path d="m62 51 8 7-9 7-7-7Z" fill="#F5A623" stroke-width="3" opacity=".45"/>
+    <path d="M18 49a50 50 0 0 1 20-27M109 76a50 50 0 0 1-16 29" stroke="#91C9E8" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 9" opacity=".45"/>
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="revealed-treasure-a" stroke="#17324A" stroke-linejoin="round">
+    <path d="m16 45-10-5M95 18l6-11M114 73l12 3M28 108l-8 11" stroke="#F07BD7" stroke-width="4" stroke-linecap="round"/>
+    <path d="m25 56 13-26 31-10 27 14 12 29-13 32-31 13-30-16Z" fill="#8FA6B8" stroke-width="6"/>
+    <path d="m38 30 22 17 9-27M60 47l-8 23 18 13-6 25M52 70l-18 22M70 83l25 12M70 83l26-49" stroke-width="4" stroke-linecap="round"/>
+    <path d="m61 47 13 11-14 12-12-11Z" fill="#F5A623" stroke-width="4"/>
+    <path d="m64 53 5 5-8 7-6-6Z" fill="#BDFBFF" stroke-width="2"/>
+    <path d="M17 51a50 50 0 0 1 22-30M110 72a50 50 0 0 1-16 34" stroke="#2DB6A3" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 8"/>
+  </g>
+</svg>

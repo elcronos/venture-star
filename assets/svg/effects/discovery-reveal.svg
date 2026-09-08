@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <g id="discovery-reveal" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="128" cy="128" r="78" stroke="#F07BD7" stroke-width="6" stroke-dasharray="18 12" opacity=".55"/>
+    <circle cx="128" cy="128" r="52" stroke="#91C9E8" stroke-width="5" stroke-dasharray="7 12"/>
+    <path d="M128 24v28M128 204v28M24 128h28M204 128h28" stroke="#BDFBFF" stroke-width="8"/>
+    <path d="m70 70 18 18m80 80 18 18m0-116-18 18M88 168l-18 18" stroke="#2DB6A3" stroke-width="6"/>
+    <path d="m128 77 14 34 37 17-37 17-14 34-14-34-37-17 37-17Z" fill="#F4F1E8" stroke="#17324A" stroke-width="9"/>
+    <circle cx="128" cy="128" r="13" fill="#F07BD7" stroke="#17324A" stroke-width="6"/>
+    <circle cx="128" cy="128" r="4" fill="#BDFBFF"/>
+  </g>
+</svg>

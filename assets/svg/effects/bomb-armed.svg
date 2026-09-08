@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="bomb-armed" stroke-linejoin="round">
+    <circle cx="32" cy="34" r="18" fill="#17324A" stroke="#F26B52" stroke-width="4"/>
+    <path d="M24 22h16l6 12-6 12H24l-6-12Z" fill="#F5A623" stroke="#17324A" stroke-width="3"/>
+    <path d="m32 25 4 7 7 2-7 3-4 7-4-7-7-3 7-2Z" fill="#F4F1E8"/>
+    <path d="M32 6v9M15 12l6 7M49 12l-6 7" fill="none" stroke="#F26B52" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="32" cy="34" r="25" fill="none" stroke="#F5A623" stroke-width="2" stroke-dasharray="5 7"/>
+  </g>
+</svg>

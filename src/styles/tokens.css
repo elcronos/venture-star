@@ -1,0 +1,31 @@
+:root {
+  --vs-space-950: #050914;
+  --vs-space-900: #091426;
+  --vs-space-800: #10233b;
+  --vs-outline: #17324a;
+  --vs-grid: #1b3852;
+  --vs-cream: #f4f1e8;
+  --vs-text-secondary: #b9c9da;
+  --vs-text-muted: #7e94aa;
+  --vs-teal: #2db6a3;
+  --vs-player: #bdfbff;
+  --vs-coral: #f26b52;
+  --vs-amber: #f5a623;
+  --vs-blue: #91c9e8;
+  --vs-magenta: #f07bd7;
+  --vs-violet: #c889ff;
+  --vs-lime: #9edb6b;
+  --vs-neutral: #a9b3c2;
+  --vs-ore: #c98a63;
+  --vs-metal: #8fa6b8;
+  --vs-crystal: #60afff;
+  --vs-exotic: #ff78c8;
+  --vs-fuel: #6fe7a6;
+  --vs-panel: rgb(16 35 59 / 94%);
+  --vs-border: 1px solid var(--vs-grid);
+  --vs-radius: 8px;
+  --vs-safe-top: max(12px, env(safe-area-inset-top));
+  --vs-safe-right: max(12px, env(safe-area-inset-right));
+  --vs-safe-bottom: max(12px, env(safe-area-inset-bottom));
+  --vs-safe-left: max(12px, env(safe-area-inset-left));
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 48">
+  <g id="button-focus" fill="none" stroke-linejoin="round">
+    <path d="M10 5h108l5 5v28l-5 5H10l-5-5V10Z" fill="#10233B" stroke="#17324A" stroke-width="4"/>
+    <path d="M8 2h112l6 6v32l-6 6H8l-6-6V8Z" stroke="#BDFBFF" stroke-width="3" stroke-dasharray="9 5"/>
+    <path d="M16 37h82" stroke="#2DB6A3" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

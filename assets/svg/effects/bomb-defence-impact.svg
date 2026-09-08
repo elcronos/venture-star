@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="bomb-defence-impact" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 7 41 22l16 3-11 12 3 17-17-7-17 7 3-17L7 25l16-3Z" fill="#F26B52" stroke="#17324A" stroke-width="4"/>
+    <path d="M32 17 38 27l10 3-8 8 2 9-10-4-10 4 2-9-8-8 10-3Z" fill="#F5A623"/>
+    <circle cx="32" cy="32" r="7" fill="#F4F1E8" stroke="#17324A" stroke-width="2"/>
+    <path d="M4 12l8 8M60 12l-8 8M4 52l8-8M60 52l-8-8" fill="none" stroke="#F26B52" stroke-width="3"/>
+  </g>
+</svg>

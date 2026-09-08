@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="revealed-cargo-b" stroke="#17324A" stroke-linejoin="round">
+    <path d="M29 34a46 46 0 0 1 74 21M100 89a46 46 0 0 1-55 18" stroke="#2DB6A3" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 7"/>
+    <path d="m19 63-13 2M76 20l3-13M110 76l12 5M37 107l-8 10" stroke="#F07BD7" stroke-width="4" stroke-linecap="round"/>
+    <path d="m34 47 25-13 31 13 8 36-25 15-33-11Z" fill="#F4F1E8" stroke-width="6"/>
+    <path d="m59 34 7 17 24-4M40 87l25-16 33 12" fill="#91C9E8" stroke-width="4"/>
+    <path d="m57 56 19-5 8 20-16 11-16-10Z" fill="#F5A623" stroke-width="4"/>
+    <path d="m64 60 9-2 4 10-8 6-8-5Z" fill="#BDFBFF" stroke-width="3"/>
+    <circle cx="22" cy="30" r="6" fill="#F07BD7" stroke-width="3"/>
+  </g>
+</svg>

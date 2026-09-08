@@ -1,0 +1,26 @@
+version: 1
+lang: web
+package_manager: auto
+paths:
+  include: ["src/**/*.{js,jsx,ts,tsx}"]
+  exclude: ["**/*.test.*", "**/node_modules/**", "**/dist/**"]
+baseline:
+  ref: main
+gates:
+  lint:            { enabled: true }
+  format:          { enabled: true }
+  types:           { enabled: true }
+  cyclomatic:      { enabled: true, max_per_function: 50 }
+  cognitive:       { enabled: true, max_per_function: 40 }
+  function_length: { enabled: true, max_lines: 200 }
+  file_length:     { enabled: true, max_lines: 1500 }
+  maintainability: { enabled: true, min_index: 65 }
+  duplication:     { enabled: true, max_percent: 3.0 }
+  circular:        { enabled: true }
+  architecture:    { enabled: true, rules: .dependency-cruiser.cjs }
+  semantic:        { enabled: true, rules_dir: .ffdd/rules }
+  bundle:          { enabled: false }
+output:
+  json: .ffdd/report.json
+  markdown: true
+  exit_on_fail: true

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="crystal-full" stroke="#17324A" stroke-linejoin="round">
+    <path d="m23 56-8-19 10-25 10 13 7-17 10 26-5 22Z" fill="#60AFFF" stroke-width="3"/>
+    <path d="m15 37 12 3 8-15 7 15 10-6M27 40l-4 16m19-16 5 16M25 12l2 28m15-32v32" stroke-width="2"/>
+    <path d="m28 20 5 7-5 8-3-10Zm15-3 4 13-4 4-2-11Z" fill="#BDFBFF" stroke-width="2"/>
+  </g>
+</svg>

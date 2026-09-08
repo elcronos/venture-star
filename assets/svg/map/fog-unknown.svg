@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <g id="unknown-fog" fill="#10233B">
+    <path d="M8 26h34l10 10-10 10H8L2 36z" opacity=".88"/>
+    <path d="M76 8h42l8 8-8 8H76l-8-8z" opacity=".68"/>
+    <path d="M150 18h70l12 12-12 12h-70l-12-12z" opacity=".78"/>
+    <path d="M34 82h78l12 12-12 12H34L22 94z" opacity=".74"/>
+    <path d="M154 76h82l14 14-14 14h-82l-14-14z" opacity=".9"/>
+    <path d="M8 144h58l12 12-12 12H8l-6-6v-12z" opacity=".82"/>
+    <path d="M104 132h60l14 14-14 14h-60l-14-14z" opacity=".7"/>
+    <path d="M192 140h44l14 14-14 14h-44l-14-14z" opacity=".76"/>
+    <path d="M28 206h86l12 12-12 12H28l-12-12z" opacity=".9"/>
+    <path d="M150 198h72l14 14-14 14h-72l-14-14z" opacity=".72"/>
+  </g>
+  <g id="unknown-signal" fill="none" stroke="#7E94AA" stroke-linecap="round">
+    <path d="M16 64h16M128 54h20M68 122h14M206 120h18M82 184h18M170 182h14M232 246h16" stroke-width="4" opacity=".55"/>
+    <circle cx="128" cy="96" r="8" stroke-width="4" opacity=".48"/>
+  </g>
+</svg>

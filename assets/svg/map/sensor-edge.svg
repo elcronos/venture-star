@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="sensor-edge" fill="none" stroke-linecap="round">
+    <path d="M3 45C14 22 32 9 61 6" stroke="#2DB6A3" stroke-width="3" stroke-dasharray="10 7"/>
+    <path d="M8 57C20 35 37 22 61 18" stroke="#91C9E8" stroke-width="2" stroke-dasharray="3 8" opacity=".75"/>
+    <path d="M42 10l3 6M54 7l2 6" stroke="#BDFBFF" stroke-width="2"/>
+  </g>
+</svg>

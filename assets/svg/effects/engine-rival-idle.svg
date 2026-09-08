@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="rival-engine-idle" stroke-linejoin="round">
+    <path d="m22 13 10-7 10 7-4 14H26Z" fill="#10233B" stroke="#17324A" stroke-width="3"/>
+    <path d="m32 27-8 15 8 8 8-8Z" fill="#F5A623" stroke="#17324A" stroke-width="3"/>
+    <path d="m32 31-3 11 3 4 3-4Z" fill="#BDFBFF"/>
+    <path d="m23 18 5 5m13-5-5 5" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>

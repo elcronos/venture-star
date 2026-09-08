@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Compatibility guidance</title>
+  <desc id="desc">A navigation display with an interrupted route, safe archive capsule, and warning beacon.</desc>
+  <g id="display" fill="#10233B" stroke="#17324A" stroke-width="9" stroke-linejoin="round">
+    <path d="M32 39h192l12 12v125l-12 12h-70l-12 22h-28l-12-22H32l-12-12V51z"/>
+  </g>
+  <path id="screen-rim" d="M42 59h172v105H42z" fill="#091426" stroke="#1B3852" stroke-width="5"/>
+  <g id="survey-grid" fill="none" stroke="#1B3852" stroke-width="3">
+    <path d="M64 112h128M128 70v83"/>
+    <circle cx="128" cy="112" r="28" stroke-dasharray="9 7"/>
+    <circle cx="128" cy="112" r="52" stroke-dasharray="5 10"/>
+  </g>
+  <g id="broken-route" fill="none" stroke="#2DB6A3" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m67 137 25-23 20 8"/>
+    <path d="m149 106 18-17 20 10"/>
+  </g>
+  <path id="route-gap" d="m120 126 9-13 9 13 9-13" fill="none" stroke="#F26B52" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <g id="warning-beacon">
+    <path d="m190 20 27 47h-54z" fill="#F5A623" stroke="#17324A" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M190 36v14" stroke="#17324A" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="190" cy="58" r="3.5" fill="#17324A"/>
+  </g>
+  <g id="archive-capsule">
+    <path d="M76 184h104v36l-10 10H86l-10-10z" fill="#F4F1E8" stroke="#17324A" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M96 184v18h64v-18" fill="#91C9E8" stroke="#17324A" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M112 216h32" stroke="#2DB6A3" stroke-width="6" stroke-linecap="round"/>
+  </g>
+</svg>

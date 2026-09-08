@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="player-engine-thrust" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 7h12l-2 12H18Zm20 0h12l-2 12H38Z" fill="#10233B" stroke="#17324A" stroke-width="3"/>
+    <path d="m19 19-3 27 6-6 4 16 3-37Zm19 0 3 37 4-16 6 6-6-27Z" fill="#2DB6A3" stroke="#17324A" stroke-width="3"/>
+    <path d="m22 20-1 25 4-8 1-17m16 0 1 25-4-8-1-17" fill="none" stroke="#BDFBFF" stroke-width="2"/>
+    <path d="M12 51h8m24 0h8" fill="none" stroke="#91C9E8" stroke-width="2" stroke-dasharray="3 4"/>
+  </g>
+</svg>

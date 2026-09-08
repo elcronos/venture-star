@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title id="title">Horizon Signal scout ship</title>
+  <g stroke="#17324A" stroke-width="1.5" stroke-linejoin="round">
+    <path fill="#F4F1E8" d="M16 2.5 21 11v10l-5 8.5L11 21V11Z"/>
+    <path fill="#2DB6A3" d="m11 13-6 7v4l6-2Zm10 0 6 7v4l-6-2Z"/>
+    <path fill="#F26B52" d="M13.5 20h5L16 27Z"/>
+    <circle cx="16" cy="11" r="2.5" fill="#F5A623"/>
+    <path d="M16 3v5M8 26v2m16-2v2" fill="none" stroke="#2DB6A3" stroke-linecap="round"/>
+  </g>
+</svg>

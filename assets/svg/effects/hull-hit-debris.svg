@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="hull-hit-debris" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m45 42 20-13 18 16-7 18-24 2Z" fill="#F4F1E8" stroke="#17324A" stroke-width="6"/>
+    <path d="m52 65 24-2 11 20-22 16-19-13Z" fill="#8FA6B8" stroke="#17324A" stroke-width="6"/>
+    <path d="m58 37 7 12 12-4M58 65l7 12-10 13M65 77l11-14" stroke="#F26B52" stroke-width="4"/>
+    <path d="m27 30 11 5-8 9-10-5ZM96 27l10 8-11 8-7-10ZM101 76l12 4-6 12-12-6ZM31 89l10 8-9 11-10-10Z" fill="#8FA6B8" stroke="#17324A" stroke-width="4"/>
+    <path d="M41 43 25 36M86 43l14-9M86 72l17 10M44 81l-15 16" stroke="#F26B52" stroke-width="4" stroke-dasharray="6 7"/>
+    <path d="m17 61 9 3-8 5M109 56l-9 4 9 4M62 14l3 9 5-8M65 114l2-9 6 7" stroke="#F5A623" stroke-width="4"/>
+  </g>
+</svg>

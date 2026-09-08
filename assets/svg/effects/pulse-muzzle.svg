@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="pulse-muzzle" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 32h12M14 17l9 8M14 47l9-8" stroke="#91C9E8" stroke-width="3"/>
+    <path d="M25 13 38 24l18 8-18 8-13 11 5-19Z" fill="#2DB6A3" stroke="#17324A" stroke-width="4"/>
+    <path d="m31 23 9 6 10 3-10 3-9 6 3-9Z" fill="#BDFBFF" stroke="#F4F1E8" stroke-width="2"/>
+    <circle cx="34" cy="32" r="4" fill="#F4F1E8" stroke="none"/>
+  </g>
+</svg>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Venture Star — Horizon Signal Asset Plan</title>
+  <style>
+    :root{color-scheme:dark;--space:#0b1d2a;--panel:#132f43;--line:#2b5067;--navy:#17324a;--teal:#2db6a3;--coral:#f26b52;--amber:#f5a623;--cream:#f4f1e8;--muted:#9fb8c7}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 80% 0,#183d50 0,transparent 30%),var(--space);color:var(--cream);font:16px/1.5 ui-sans-serif,system-ui,sans-serif}
+    main{width:min(1180px,calc(100% - 32px));margin:auto;padding:48px 0 72px} h1{font-size:clamp(2rem,6vw,4.8rem);line-height:.95;margin:0 0 16px;letter-spacing:-.05em} h2{margin:48px 0 18px;color:var(--amber)} p{max-width:78ch;color:var(--muted)} .eyebrow{color:var(--teal);font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:.78rem}.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:32px;align-items:center}.mark{width:min(100%,320px);margin:auto;filter:drop-shadow(0 18px 40px #0008)}
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{background:#102839;border:1px solid var(--line);border-radius:18px;padding:18px;overflow:hidden}.card.selected{border-color:var(--teal);box-shadow:0 0 0 2px #2db6a333}.card img{display:block;width:100%;aspect-ratio:1;object-fit:contain;background:#091925;border-radius:12px;padding:18px}.card.reference img{image-rendering:auto;object-fit:cover;padding:0}.tag{display:inline-flex;padding:4px 9px;border-radius:99px;background:#2db6a322;color:#69dfd0;font-size:.75rem;font-weight:800;text-transform:uppercase}.palette{display:flex;gap:10px;flex-wrap:wrap}.swatch{width:108px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--line)}.swatch i{display:block;height:62px}.swatch span{display:block;padding:8px;font-size:.72rem;color:var(--muted)}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.stat{padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px}.stat strong{display:block;font-size:1.8rem;color:var(--amber)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}table{width:100%;border-collapse:collapse;min-width:760px;background:#0f2737}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid #24475c;vertical-align:top}th{position:sticky;top:0;background:#17384d;color:var(--teal)}td:nth-child(3){color:var(--amber);font-weight:800}.note{padding:18px;border-left:4px solid var(--coral);background:#f26b5214;border-radius:0 12px 12px 0}.footer{margin-top:44px;color:#6f91a3;font-size:.85rem}
+    @media(max-width:800px){main{padding-top:28px}.hero,.cards{grid-template-columns:1fr}.summary{grid-template-columns:repeat(2,1fr)}.cards .reference{order:3}}
+  </style>
+</head>
+<body><main>
+  <section class="hero">
+    <div><div class="eyebrow">Approved visual direction</div><h1>Horizon<br>Signal</h1><p>An original clean-vector identity for <strong>Venture Star</strong>: optimistic frontier exploration, crisp mobile silhouettes, balanced cool and warm colour, and Deep Survey radar grammar for navigation.</p></div>
+    <img class="mark" src="moodboards/horizon-signal.svg" alt="Horizon Signal scout-ship direction">
+  </section>
+
+  <h2>Visual references</h2>
+  <section class="cards">
+    <article class="card reference"><span class="tag">Inspiration</span><h3>Supplied reference</h3><img src="references/spacecraft-inspiration.jpeg" alt="User-supplied collection of colourful compact spacecraft"><p>Compact silhouettes, high small-scale readability, and the navy/teal/coral/amber relationship. No ship designs or pixel geometry will be copied.</p></article>
+    <article class="card selected"><span class="tag">Selected</span><h3>Horizon Signal</h3><img src="moodboards/horizon-signal.svg" alt="Selected Horizon Signal vector spacecraft"><p>Bold navy outlines, cream hull planes, teal navigation surfaces, amber energy, and coral urgency.</p></article>
+    <article class="card"><span class="tag">Supporting language</span><h3>Deep Survey</h3><img src="moodboards/deep-survey.svg" alt="Deep Survey vector scanner and spacecraft"><p>Broken range contours, radar rings, and directional signals used selectively in maps, sensors, and targeting.</p></article>
+  </section>
+
+  <h2>Working palette</h2>
+  <div class="palette">
+    <div class="swatch"><i style="background:#17324a"></i><span>Deep Space<br>#17324A</span></div><div class="swatch"><i style="background:#2db6a3"></i><span>Survey Teal<br>#2DB6A3</span></div><div class="swatch"><i style="background:#f26b52"></i><span>Beacon Coral<br>#F26B52</span></div><div class="swatch"><i style="background:#f5a623"></i><span>Solar Amber<br>#F5A623</span></div><div class="swatch"><i style="background:#f4f1e8"></i><span>Starlight<br>#F4F1E8</span></div><div class="swatch"><i style="background:#91c9e8"></i><span>Mist Blue<br>#91C9E8</span></div>
+  </div>
+
+  <h2>v0 asset inventory</h2>
+  <div class="summary"><div class="stat"><strong>190</strong>SVG sources</div><div class="stat"><strong>18</strong>cohesive batches</div><div class="stat"><strong>32–512</strong>viewBox range</div><div class="stat"><strong>1× / 2×</strong>runtime atlases</div></div>
+  <div class="table-wrap"><table><thead><tr><th>Batch</th><th>Asset family</th><th>Count</th><th>Size</th><th>Complexity</th></tr></thead><tbody>
+    <tr><td>A01</td><td>Brand logo and compass-star mark</td><td>2</td><td>512</td><td>Intricate</td></tr><tr><td>A02</td><td>Starfields, loading orbit, compatibility art</td><td>5</td><td>64–1024</td><td>Standard</td></tr><tr><td>A03</td><td>Player flagship states</td><td>6</td><td>128</td><td>Intricate</td></tr><tr><td>A04</td><td>Rival scout states</td><td>4</td><td>128</td><td>Intricate</td></tr><tr><td>A05</td><td>Orbital shipyard states</td><td>4</td><td>256</td><td>Intricate</td></tr><tr><td>A06</td><td>Rocky, oceanic, verdant, arid, ice planets</td><td>5</td><td>256</td><td>Intricate</td></tr><tr><td>A07</td><td>Colour-independent ownership patterns</td><td>3</td><td>32</td><td>Simple</td></tr><tr><td>A08</td><td>Ore, metal, crystal node states</td><td>9</td><td>64</td><td>Standard</td></tr><tr><td>A09</td><td>Asteroid-field tiles and warning</td><td>5</td><td>256</td><td>Standard</td></tr><tr><td>A10</td><td>Abandoned cargo and treasure discoveries</td><td>14</td><td>128</td><td>Intricate</td></tr><tr><td>A11</td><td>Flight, mining, and station-lock effects</td><td>11</td><td>64–128</td><td>Standard</td></tr><tr><td>A12</td><td>Sensor and layered-damage effects</td><td>10</td><td>64–256</td><td>Standard</td></tr><tr><td>A13</td><td>Pulse and consumable-bomb effects</td><td>7</td><td>32–64</td><td>Standard</td></tr><tr><td>A14</td><td>Small and large explosion frames</td><td>16</td><td>64/256</td><td>Standard</td></tr><tr><td>A15</td><td>Strategic and reduced-motion effects</td><td>8</td><td>64–256</td><td>Standard</td></tr><tr><td>A16</td><td>Complete HUD icon family</td><td>49</td><td>32</td><td>Simple</td></tr><tr><td>A17</td><td>Danger, fog, sensor, route, and objective map language</td><td>14</td><td>32–256</td><td>Simple/standard</td></tr><tr><td>A18</td><td>Panels, buttons, meters, tooltip, toast, focus</td><td>18</td><td>32–128</td><td>Simple/standard</td></tr>
+  </tbody></table></div>
+
+  <h2>Non-negotiable cohesion rules</h2>
+  <div class="note">No gameplay meaning relies on colour alone. Every state also uses silhouette, emblem, hatch, motion, or text. No copied ships, pixel-art stair steps, faux military insignia, photorealism, or busy surface detailing.</div>
+  <p class="footer">Venture Star · Asset manifest proposal · Horizon Signal direction</p>
+</main></body></html>

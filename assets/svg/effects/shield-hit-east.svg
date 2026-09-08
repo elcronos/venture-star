@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs><linearGradient id="shield-e" x1="118" y1="64" x2="73" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#BDFBFF"/><stop offset="1" stop-color="#2DB6A3"/></linearGradient></defs>
+  <g id="shield-hit-east" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M73 19a49 49 0 0 1 0 90" stroke="#17324A" stroke-width="10"/>
+    <path d="M73 19a49 49 0 0 1 0 90" stroke="url(#shield-e)" stroke-width="6" stroke-dasharray="32 7"/>
+    <path d="m120 64-14-7 4 7-4 7Z" fill="#BDFBFF" stroke="#17324A" stroke-width="4"/>
+    <path d="m110 45-11 5M110 83l-11-5M98 32l-8 9M98 96l-8-9" stroke="#91C9E8" stroke-width="4"/>
+    <path d="m97 55-10 9 10 9" stroke="#F4F1E8" stroke-width="4"/>
+  </g>
+</svg>

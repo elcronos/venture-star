@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "lang": "web",
+  "status": "pass",
+  "finished_at": "2026-09-08T03:06:50.703Z",
+  "gates": [
+    {
+      "gate": "architecture",
+      "status": "pass",
+      "raw": "\n✔ no dependency violations found (25 modules, 39 dependencies cruised)\n\n",
+      "duration_ms": 1407
+    },
+    {
+      "gate": "circular",
+      "status": "pass",
+      "raw": "",
+      "duration_ms": 1243
+    },
+    {
+      "gate": "duplication",
+      "status": "pass",
+      "raw": "\u001b[1mDuplications detection: Found 2 exact clones with 17(0.23%) duplicated lines in 18 (1 formats) files.\u001b[22m\n\u001b[32mJSON report saved to .ffdd/jscpd/jscpd-report.json\u001b[39m\n",
+      "duration_ms": 563
+    },
+    {
+      "gate": "format",
+      "status": "pass",
+      "raw": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "duration_ms": 1154
+    },
+    {
+      "gate": "lint",
+      "status": "pass",
+      "raw": "",
+      "duration_ms": 1691
+    },
+    {
+      "gate": "maintainability",
+      "status": "pass",
+      "raw": "",
+      "duration_ms": 485
+    },
+    {
+      "gate": "semantic",
+      "status": "skip",
+      "raw": "ast-grep and semgrep are not installed; optional semantic gate skipped",
+      "duration_ms": 0
+    },
+    {
+      "gate": "types",
+      "status": "pass",
+      "raw": "",
+      "duration_ms": 1823
+    }
+  ],
+  "summary": {
+    "failed_gates": [],
+    "total_violations": 0
+  }
+}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="antipode-boundary" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 12L12 4M4 26L26 4M4 40L40 4M4 54L54 4M12 60L60 12M26 60L60 26M40 60L60 40M54 60l6-6" stroke="#F26B52" stroke-width="3" opacity=".9"/>
+    <path d="M32 12l17 30H15z" fill="#091426" stroke="#17324A" stroke-width="3"/>
+    <path d="M32 20v15" stroke="#F26B52" stroke-width="3"/>
+    <circle cx="32" cy="39" r="2.5" fill="#F26B52"/>
+    <path d="M6 57h14M44 7h14" stroke="#BDFBFF" stroke-width="3"/>
+  </g>
+</svg>

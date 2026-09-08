@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <g id="destroyed-shipyard" stroke="#17324A" stroke-linejoin="round">
+    <g id="broken-orbital-ring" fill="none" stroke-width="11" stroke-linecap="round">
+      <path d="M48 91a87 87 0 0 1 57-47" stroke="#B9C9DA"/>
+      <path d="M154 44a87 87 0 0 1 55 50" stroke="#F4F1E8"/>
+      <path d="M207 171a87 87 0 0 1-58 43" stroke="#B9C9DA"/>
+      <path d="M103 212a87 87 0 0 1-58-53" stroke="#F4F1E8"/>
+    </g>
+    <path id="left-wreck" d="m45 117 65-12 15 19-20 35-57 7 21-30Z" fill="#10233B" stroke-width="9"/>
+    <path id="right-wreck" d="m211 106-67 9-13 21 25 31 55-2-23-30Z" fill="#10233B" stroke-width="9"/>
+    <path id="top-wreck" d="m105 43 18 63 22 2 14-65-30 19Z" fill="#B9C9DA" stroke-width="9"/>
+    <path id="ruptured-hub" d="m93 126 21-31 25 13 25-3 8 29-21 29-30-5-27 6-11-21Z" fill="#F26B52" stroke-width="10"/>
+    <path id="exposed-core" d="m113 127 16-14 15 16-9 18-20-3Z" fill="#F5A623" stroke-width="6"/>
+    <g id="fractures" stroke="#F26B52" stroke-width="6" stroke-linecap="round">
+      <path d="m85 73 14 13-11 13M180 74l-17 15 11 11M81 187l18-17M177 190l-19-18"/>
+    </g>
+  </g>
+  <g id="debris-field" fill="#F26B52" stroke="#17324A" stroke-width="4" stroke-linejoin="round">
+    <path d="m25 67 13-4-4 14Z"/><path d="m220 53 11 7-13 7Z"/>
+    <path d="m225 195 8 12-14-1Z"/><path d="m33 205 13-8-1 15Z"/>
+    <path d="m126 226 8 13-14-2Z"/>
+  </g>
+</svg>

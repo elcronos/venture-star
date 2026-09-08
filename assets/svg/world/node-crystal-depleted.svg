@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="crystal-depleted" stroke="#17324A" stroke-linejoin="round">
+    <path d="m10 49 9-12 10 5 8-13 7 13 10 6-7 8H18Z" fill="#10233B" stroke-width="3"/>
+    <path d="m19 37 7 12 11-20 5 20 12-1M26 49l-8 7m24-7 5 7" stroke="#60AFFF" stroke-width="2"/>
+    <path d="m31 40 5 5 5-8" stroke="#BDFBFF" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>

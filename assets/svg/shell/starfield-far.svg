@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Far starfield</title>
+  <desc id="desc">A seamless deep navy field of quiet distant stars.</desc>
+  <rect width="1024" height="1024" fill="#050914"/>
+  <g id="far-stars" fill="#7E94AA" opacity=".6">
+    <circle cx="45" cy="81" r="2"/><circle cx="143" cy="44" r="1.5"/><circle cx="242" cy="121" r="2"/><circle cx="364" cy="59" r="1.5"/><circle cx="477" cy="151" r="2"/><circle cx="597" cy="74" r="1.5"/><circle cx="721" cy="126" r="2"/><circle cx="842" cy="48" r="1.5"/><circle cx="955" cy="143" r="2"/>
+    <circle cx="84" cy="243" r="1.5"/><circle cx="198" cy="313" r="2"/><circle cx="312" cy="222" r="1.5"/><circle cx="430" cy="337" r="2"/><circle cx="552" cy="248" r="1.5"/><circle cx="671" cy="302" r="2"/><circle cx="795" cy="215" r="1.5"/><circle cx="914" cy="324" r="2"/>
+    <circle cx="38" cy="447" r="2"/><circle cx="159" cy="518" r="1.5"/><circle cx="280" cy="407" r="2"/><circle cx="398" cy="492" r="1.5"/><circle cx="518" cy="421" r="2"/><circle cx="639" cy="537" r="1.5"/><circle cx="759" cy="438" r="2"/><circle cx="881" cy="505" r="1.5"/><circle cx="982" cy="414" r="2"/>
+    <circle cx="91" cy="659" r="1.5"/><circle cx="213" cy="602" r="2"/><circle cx="334" cy="701" r="1.5"/><circle cx="452" cy="628" r="2"/><circle cx="574" cy="713" r="1.5"/><circle cx="696" cy="616" r="2"/><circle cx="814" cy="690" r="1.5"/><circle cx="933" cy="603" r="2"/>
+    <circle cx="46" cy="849" r="2"/><circle cx="167" cy="781" r="1.5"/><circle cx="289" cy="904" r="2"/><circle cx="407" cy="809" r="1.5"/><circle cx="529" cy="927" r="2"/><circle cx="648" cy="836" r="1.5"/><circle cx="769" cy="947" r="2"/><circle cx="889" cy="812" r="1.5"/><circle cx="978" cy="918" r="2"/>
+  </g>
+  <g fill="#B9C9DA" opacity=".85">
+    <circle cx="121" cy="178" r="2.5"/><circle cx="388" cy="188" r="2.5"/><circle cx="622" cy="172" r="2.5"/><circle cx="866" cy="165" r="2.5"/><circle cx="115" cy="375" r="2.5"/><circle cx="348" cy="361" r="2.5"/><circle cx="589" cy="389" r="2.5"/><circle cx="833" cy="372" r="2.5"/><circle cx="245" cy="563" r="2.5"/><circle cx="487" cy="579" r="2.5"/><circle cx="730" cy="566" r="2.5"/><circle cx="949" cy="554" r="2.5"/><circle cx="126" cy="746" r="2.5"/><circle cx="365" cy="766" r="2.5"/><circle cx="606" cy="754" r="2.5"/><circle cx="856" cy="762" r="2.5"/>
+  </g>
+</svg>

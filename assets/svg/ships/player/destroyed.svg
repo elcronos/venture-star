@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Destroyed Venture Star flagship</title>
+  <desc id="desc">The recognizable flagship frame has broken into separated chevron hull sections around a failed core.</desc>
+  <g id="debris-sparks" fill="#F5A623" stroke="#17324A" stroke-width="2" stroke-linejoin="round"><path d="m18 25 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/><path d="m108 88 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"/></g>
+  <g id="flagship-wreck" stroke="#17324A" stroke-width="6" stroke-linejoin="round">
+    <path id="port-wing" d="M58 14 14 48 24 90 43 104 49 80 59 69Z" fill="#2DB6A3"/>
+    <path id="starboard-wing" d="m71 7 45 45-13 46-19 13-8-28-8-11Z" fill="#2DB6A3"/>
+    <path id="central-hull" d="m64 15-14 54 5 34 9 12 9-12 5-34Z" fill="#F4F1E8"/>
+  </g>
+  <g id="wreck-depth" fill="#10233B"><path d="M22 51 48 31 43 53 30 67Z"/><path d="m108 55-28-25 5 25 14 17Z"/><path d="m30 84 15-11-4 21Z"/><path d="m99 91-17-15 5 25Z"/></g>
+  <g id="severed-edges" fill="#F26B52" stroke="#17324A" stroke-width="3" stroke-linejoin="round"><path d="m52 60 7 9-9 10-3-10Z"/><path d="m76 61-8 11 9 11 4-13Z"/><path d="m56 101 8 14 8-14-8 5Z"/></g>
+  <g id="failed-core"><circle cx="64" cy="65" r="15" fill="#10233B" stroke="#17324A" stroke-width="5"/><path d="m57 56 6 7-5 8m13-14-7 7 6 7" fill="none" stroke="#F26B52" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <g id="debris" fill="#F4F1E8" stroke="#17324A" stroke-width="3" stroke-linejoin="round"><path d="m29 110 8-4 3 8-7 5Z"/><path d="m93 17 7 4-4 8-7-5Z"/></g>
+</svg>

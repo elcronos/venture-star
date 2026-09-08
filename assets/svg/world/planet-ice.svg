@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="ice-body" cx="34%" cy="28%" r="76%">
+      <stop offset="0" stop-color="#F4F1E8"/>
+      <stop offset="1" stop-color="#91C9E8"/>
+    </radialGradient>
+    <clipPath id="ice-clip"><circle cx="128" cy="128" r="104"/></clipPath>
+  </defs>
+  <g id="planet-body" clip-path="url(#ice-clip)">
+    <circle cx="128" cy="128" r="104" fill="url(#ice-body)"/>
+    <path d="M23 89l34-21 31 11 30-39 27 42 33-10 52 39-22 37-35-5-28 38-30-34-40 18-35-30z" fill="#BDFBFF"/>
+    <path d="M19 169l38-18 31 10 29 49 28-30 37-4 25 29c-22 19-50 29-80 29-50 0-91-25-108-65z" fill="#F4F1E8"/>
+    <g id="ice-fissures" fill="none" stroke="#17324A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".55">
+      <path d="M115 58l9 31-16 21 17 24"/>
+      <path d="M173 104l-19 18 10 19"/>
+      <path d="M73 162l20 15-6 20"/>
+    </g>
+  </g>
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#17324A" stroke-width="10"/>
+</svg>

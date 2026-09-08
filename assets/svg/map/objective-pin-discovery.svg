@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <g id="objective-discovery" stroke-linejoin="round">
+    <path d="M16 29L6 17V8l4-4h12l4 4v9z" fill="#10233B" stroke="#17324A" stroke-width="1.5"/>
+    <path d="M16 6l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#F07BD7" stroke="#17324A" stroke-width="1.5"/>
+    <circle cx="23" cy="7" r="2" fill="#BDFBFF"/>
+  </g>
+</svg>

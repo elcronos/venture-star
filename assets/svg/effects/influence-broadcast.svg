@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <g id="influence-broadcast" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M35 38C17 52 17 76 35 90M49 49c-10 8-10 22 0 30M93 38c18 14 18 38 0 52M79 49c10 8 10 22 0 30" stroke="#2DB6A3" stroke-width="5"/>
+    <path d="M24 28C-1 48-1 80 24 100M104 28c25 20 25 52 0 72" stroke="#91C9E8" stroke-width="4" stroke-dasharray="10 8"/>
+    <path d="m64 29 11 24 25 11-25 11-11 24-11-24-25-11 25-11Z" fill="#F4F1E8" stroke="#17324A" stroke-width="6"/>
+    <circle cx="64" cy="64" r="10" fill="#2DB6A3" stroke="#17324A" stroke-width="4"/>
+    <path d="M58 64h12M64 58v12" stroke="#BDFBFF" stroke-width="3"/>
+  </g>
+</svg>

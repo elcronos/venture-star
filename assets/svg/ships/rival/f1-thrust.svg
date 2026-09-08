@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="engine-thrust" stroke-linejoin="round">
+    <path d="m49 96 15 28 15-28Z" fill="#F5A623" stroke="#17324A" stroke-width="5"/>
+    <path d="m56 98 8 21 8-21Z" fill="#BDFBFF"/>
+  </g>
+  <g id="rival-f1-thrust" stroke="#17324A" stroke-linejoin="round">
+    <path id="closed-spear-hull" d="M64 7 111 87 82 78 64 102 46 78 17 87Z" fill="#F5A623" stroke-width="6"/>
+    <path id="left-armour-plane" d="M64 16 50 73 25 81Z" fill="#F4F1E8" stroke-width="4"/>
+    <path id="right-armour-plane" d="M64 16 103 81 78 73Z" fill="#F4F1E8" stroke-width="4"/>
+    <path id="shadow-keel" d="M50 73 64 92 78 73 64 23Z" fill="#10233B" stroke-width="4"/>
+    <g id="diagonal-faction-hatch" stroke="#F5A623" stroke-width="3" stroke-linecap="round">
+      <path d="m31 70 12 12"/><path d="m38 58 14 14"/>
+      <path d="m97 70-12 12"/><path d="m90 58-14 14"/>
+    </g>
+    <g id="split-diamond-emblem" stroke-width="3">
+      <path d="m62 41-9 10 9 10Z" fill="#F5A623"/>
+      <path d="m66 41 9 10-9 10Z" fill="#F5A623"/>
+    </g>
+    <circle id="hot-reactor" cx="64" cy="80" r="6" fill="#BDFBFF" stroke-width="3"/>
+  </g>
+</svg>

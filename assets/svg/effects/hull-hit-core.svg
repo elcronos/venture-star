@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="hull-hit-core" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="64" cy="64" r="31" fill="#10233B" stroke="#17324A" stroke-width="8" stroke-dasharray="45 12"/>
+    <circle cx="64" cy="64" r="20" fill="#F26B52" opacity=".22"/>
+    <path d="m64 42 8 14 16 3-11 12 3 17-16-7-16 7 3-17-11-12 16-3Z" fill="#F26B52" stroke="#17324A" stroke-width="5"/>
+    <path d="m64 51 4 9 9 4-9 4-4 9-4-9-9-4 9-4Z" fill="#F4F1E8"/>
+    <path d="M64 25V10M64 118v-15M25 64H10M118 64h-15M36 36 25 25M103 103 92 92M92 36l11-11M25 103l11-11" stroke="#F26B52" stroke-width="5"/>
+    <path d="m51 22 3 8M77 98l3 8M22 77l8-3M98 54l8-3" stroke="#F5A623" stroke-width="4"/>
+  </g>
+</svg>

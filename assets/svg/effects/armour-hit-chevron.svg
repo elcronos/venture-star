@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="armour-hit-chevron" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 15h44v34H10Z" fill="#8FA6B8" stroke="#17324A" stroke-width="3"/>
+    <path d="m15 21 17 13 17-13" stroke="#F4F1E8" stroke-width="4"/>
+    <path d="m15 43 17-9 17 9" stroke="#17324A" stroke-width="3" opacity=".75"/>
+    <path d="m27 26 5 8 5-8M32 34l-3 9 7 6" stroke="#F26B52" stroke-width="4"/>
+    <path d="m22 31-8-4m28 4 8-4M24 45l-5 6m21-6 5 6" stroke="#F5A623" stroke-width="3"/>
+  </g>
+</svg>

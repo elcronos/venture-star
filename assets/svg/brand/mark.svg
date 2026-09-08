@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Venture Star compass mark</title>
+  <desc id="desc">A four-point star held inside a forward open navigation chevron and broken survey orbit.</desc>
+  <g id="survey-orbit" fill="none" stroke="#2DB6A3" stroke-width="16" stroke-linecap="round">
+    <path d="M122 157A174 174 0 0 1 218 86"/>
+    <path d="M294 86a174 174 0 0 1 96 71"/>
+    <path d="M390 355a174 174 0 0 1-96 71"/>
+    <path d="M218 426a174 174 0 0 1-96-71"/>
+  </g>
+  <g id="bearing-ticks" fill="#91C9E8">
+    <path d="M250 52h12v34h-12z"/>
+    <path d="M426 250h34v12h-34z"/>
+    <path d="M250 426h12v34h-12z"/>
+    <path d="M52 250h34v12H52z"/>
+  </g>
+  <path id="forward-chevron" d="M82 356 256 104l174 252-65 34-109-158-109 158z" fill="#17324A" stroke="#F4F1E8" stroke-width="16" stroke-linejoin="round"/>
+  <path id="teal-plane-left" d="m119 348 137-198v82L147 390z" fill="#2DB6A3"/>
+  <path id="teal-plane-right" d="m393 348-137-198v82l109 158z" fill="#2DB6A3"/>
+  <path id="compass-star" d="m256 176 24 56 56 24-56 24-24 56-24-56-56-24 56-24z" fill="#F4F1E8" stroke="#17324A" stroke-width="10" stroke-linejoin="round"/>
+  <circle id="solar-core" cx="256" cy="256" r="21" fill="#F5A623" stroke="#17324A" stroke-width="8"/>
+</svg>

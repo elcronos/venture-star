@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <g id="objective-strategic" stroke-linejoin="round">
+    <path d="M16 29L6 17V8l4-4h12l4 4v9z" fill="#10233B" stroke="#17324A" stroke-width="1.5"/>
+    <path d="M16 7l7 4v5l-7 5-7-5v-5z" fill="none" stroke="#F26B52" stroke-width="1.5"/>
+    <circle cx="16" cy="14" r="2.5" fill="#F26B52"/>
+    <path d="M16 7v4M9 11l4 2M23 11l-4 2" stroke="#F4F1E8" stroke-width="1" stroke-linecap="round"/>
+  </g>
+</svg>

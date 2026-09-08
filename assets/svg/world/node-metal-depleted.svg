@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <g id="metal-depleted" stroke="#17324A" stroke-linejoin="round">
+    <path d="m9 47 10-12 12 4 8-8 16 14-7 11H20Z" fill="#10233B" stroke-width="3"/>
+    <path d="m19 35 8 11 12-15 3 16 13-2M27 46l-7 10m22-9 6 9" stroke="#8FA6B8" stroke-width="2"/>
+    <path d="M29 41h8m-4-4v8" stroke="#F4F1E8" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>

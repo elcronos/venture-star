@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <g id="warning-boundary">
+    <path d="M0 92c54-24 85 20 128 0s82 19 128 0v72c-46 19-85-20-128 0s-74-24-128 0Z" fill="#F26B52" opacity=".18"/>
+    <path d="M0 92c54-24 85 20 128 0s82 19 128 0M0 164c54-24 85 20 128 0s82 19 128 0" stroke="#F26B52" stroke-width="8" stroke-dasharray="20 12" stroke-linecap="round"/>
+    <g fill="#F26B52" stroke="#17324A" stroke-width="6" stroke-linejoin="round">
+      <path d="m39 108 22 38H17Z"/><path d="m128 92 22 38h-44Z"/><path d="m217 108 22 38h-44Z"/>
+    </g>
+    <g stroke="#F4F1E8" stroke-width="6" stroke-linecap="round">
+      <path d="M39 119v12m0 8v1M128 103v12m0 8v1m89-5v12m0 8v1"/>
+    </g>
+    <g stroke="#F26B52" stroke-width="5" opacity=".65">
+      <path d="m70 104 24 36m-12-43 24 36m52-36 24 36m-12-29 20 30"/>
+    </g>
+  </g>
+</svg>

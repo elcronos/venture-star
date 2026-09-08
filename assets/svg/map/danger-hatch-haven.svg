@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="haven-boundary" fill="none" stroke="#91C9E8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 48L48 4M22 60L60 22" stroke-width="3" opacity=".55"/>
+    <path d="M32 18l12 21H20z" stroke="#17324A" stroke-width="3"/>
+    <circle cx="32" cy="34" r="2" fill="#91C9E8" stroke="none"/>
+  </g>
+</svg>

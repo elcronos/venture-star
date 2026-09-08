@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g id="player-engine-idle" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 12h12l-2 13H18Z" fill="#10233B" stroke="#17324A" stroke-width="3"/>
+    <path d="M36 12h12l-2 13H38Z" fill="#10233B" stroke="#17324A" stroke-width="3"/>
+    <path d="M20 25c0 7 1 11 2 16 1-5 2-9 2-16m16 0c0 7 1 11 2 16 1-5 2-9 2-16" fill="#2DB6A3" stroke="#17324A" stroke-width="3"/>
+    <path d="M22 26v10m20-10v10" stroke="#BDFBFF" stroke-width="2"/>
+    <path d="M17 48h10m10 0h10" fill="none" stroke="#91C9E8" stroke-width="2" stroke-dasharray="3 5"/>
+  </g>
+</svg>

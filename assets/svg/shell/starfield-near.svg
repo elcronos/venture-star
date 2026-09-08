@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Near starfield</title>
+  <desc id="desc">A seamless transparent layer of bright foreground stars with directional sparkle.</desc>
+  <g id="near-stars" fill="#F4F1E8">
+    <path d="m86 107 5 15 15 5-15 5-5 15-5-15-15-5 15-5z"/>
+    <path d="m333 235 4 12 12 4-12 4-4 12-4-12-12-4 12-4z"/>
+    <path d="m704 109 5 15 15 5-15 5-5 15-5-15-15-5 15-5z"/>
+    <path d="m921 340 4 12 12 4-12 4-4 12-4-12-12-4 12-4z"/>
+    <path d="m165 489 5 15 15 5-15 5-5 15-5-15-15-5 15-5z"/>
+    <path d="m547 575 4 12 12 4-12 4-4 12-4-12-12-4 12-4z"/>
+    <path d="m847 698 5 15 15 5-15 5-5 15-5-15-15-5 15-5z"/>
+    <path d="m285 861 4 12 12 4-12 4-4 12-4-12-12-4 12-4z"/>
+    <circle cx="500" cy="178" r="5"/><circle cx="760" cy="436" r="5"/><circle cx="74" cy="742" r="5"/><circle cx="625" cy="886" r="5"/>
+  </g>
+  <g id="signal-stars" fill="#BDFBFF">
+    <circle cx="205" cy="329" r="6"/><circle cx="446" cy="752" r="6"/><circle cx="951" cy="817" r="6"/>
+  </g>
+  <g fill="none" stroke="#91C9E8" stroke-width="3" stroke-linecap="round" opacity=".72">
+    <path d="M194 329h-13M216 329h13M205 318v-13M205 340v13"/>
+    <path d="M435 752h-13M457 752h13M446 741v-13M446 763v13"/>
+    <path d="M940 817h-13M962 817h13M951 806v-13M951 828v13"/>
+  </g>
+</svg>

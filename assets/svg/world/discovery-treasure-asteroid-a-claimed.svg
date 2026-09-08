@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <g id="claimed-treasure-a" stroke="#17324A" stroke-linejoin="round">
+    <path d="m23 56 15-27 26-9-6 29-14 19-13 25-9-18Z" fill="#8FA6B8" stroke-width="6"/>
+    <path d="m70 20 26 13 13 29-14 33-31 13 6-25 16-18-15-17Z" fill="#8FA6B8" stroke-width="6"/>
+    <path d="m58 49 13-1 15 17-16 19-12-1-14-15Z" fill="#10233B" stroke-width="4"/>
+    <path d="m55 66 8 8 17-20" stroke="#2DB6A3" stroke-width="6" stroke-linecap="round"/>
+    <path d="M17 50a51 51 0 0 1 22-30M110 73a51 51 0 0 1-16 34M49 114a51 51 0 0 1-20-12" stroke="#2DB6A3" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 8"/>
+  </g>
+</svg>

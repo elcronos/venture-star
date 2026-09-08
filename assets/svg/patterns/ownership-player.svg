@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <g id="player-pattern" fill="none" stroke="#2DB6A3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="16" cy="16" r="9" stroke-width="1.5"/>
+    <path d="M16 8.5l1.8 5.7 5.7 1.8-5.7 1.8-1.8 5.7-1.8-5.7L8.5 16l5.7-1.8z" fill="#BDFBFF" stroke="#17324A" stroke-width="1.5"/>
+    <path d="M3 3h2M27 3h2M3 29h2M27 29h2" stroke-width="1.5"/>
+  </g>
+</svg>

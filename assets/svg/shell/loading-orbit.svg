@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Loading orbit</title>
+  <desc id="desc">A broken survey orbit circles a four-point navigation star.</desc>
+  <g id="orbit" fill="none" stroke-linecap="round">
+    <circle cx="32" cy="32" r="25" stroke="#1B3852" stroke-width="3"/>
+    <path d="M32 7a25 25 0 0 1 21.7 12.6" stroke="#2DB6A3" stroke-width="3"/>
+    <path d="M57 32a25 25 0 0 1-12.5 21.7" stroke="#91C9E8" stroke-width="2" stroke-dasharray="5 5"/>
+    <circle cx="53.7" cy="19.6" r="3.5" fill="#F5A623" stroke="#17324A" stroke-width="2"/>
+  </g>
+  <path id="star" d="m32 19 4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#F4F1E8" stroke="#17324A" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="32" cy="32" r="3" fill="#F5A623"/>
+</svg>
