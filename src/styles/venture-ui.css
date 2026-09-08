@@ -91,10 +91,11 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
 .vs-sector { display: flex; min-height: 48px; align-items: center; gap: .55rem; padding: .5rem .75rem; border: var(--vs-border); border-radius: var(--vs-radius); background: var(--vs-panel); }
 .vs-danger { display: inline-flex; align-items: center; gap: .3rem; color: var(--vs-amber); }
 .vs-critical-banner { position: fixed; z-index: 4; top: calc(var(--vs-safe-top) + 58px); left: 50%; display: flex; max-width: min(40rem, calc(100vw - 24px)); gap: .6rem; padding: .8rem 1rem; transform: translateX(-50%); border: 2px solid var(--vs-coral); background: var(--vs-space-800); }
-.vs-notice { position: fixed; z-index: 4; top: calc(var(--vs-safe-top) + 58px); left: 50%; display: flex; max-width: min(46rem, calc(100vw - 24px)); align-items: center; gap: .6rem; padding: .5rem .85rem; transform: translateX(-50%); border: var(--vs-border); border-left: 3px solid var(--vs-blue); background: var(--vs-space-800); font-size: .9rem; }
+/* A status readout must never intercept a click meant for the controls. */
+.vs-notice { pointer-events: none; position: fixed; z-index: 2; top: calc(var(--vs-safe-top) + 58px); left: 50%; display: flex; max-width: min(46rem, calc(100vw - 24px)); align-items: center; gap: .6rem; padding: .5rem .85rem; transform: translateX(-50%); border: var(--vs-border); border-left: 3px solid var(--vs-blue); background: var(--vs-space-800); font-size: .9rem; }
 .vs-notice.severity-major { border-left-color: var(--vs-amber); }
 .vs-notice__time { color: var(--vs-text-secondary); font-variant-numeric: tabular-nums; }
-@media (max-width: 599px) { .vs-notice { top: calc(var(--vs-safe-top) + 62px); font-size: .8rem; } .vs-notice__time { display: none; } }
+@media (max-width: 599px) { .vs-notice { top: calc(var(--vs-safe-top) + 116px); font-size: .8rem; } .vs-notice__time { display: none; } }
 .vs-flight-title { position: fixed; top: var(--vs-safe-top); left: var(--vs-safe-left); max-width: 18rem; font-size: 1rem; }
 .vs-status { position: fixed; top: calc(var(--vs-safe-top) + 64px); left: var(--vs-safe-left); width: min(320px, calc(50vw - 20px)); }
 .vs-target { position: fixed; top: calc(var(--vs-safe-top) + 64px); right: var(--vs-safe-right); width: min(320px, calc(50vw - 20px)); }
