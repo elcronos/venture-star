@@ -17,4 +17,3 @@ export function tradeSummary(ship: Ship, planet: Planet): string {
   if (!listed.length) return 'Market buys nothing you carry';
   return `${carried.length ? 'Pays for your cargo' : 'Buys'}: ${listed.join(' · ')}`;
 }
-

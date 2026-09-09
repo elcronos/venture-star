@@ -76,7 +76,7 @@ test('UX-T-076: the minimap reports the ship sector, charted fog, and live posit
   page,
 }) => {
   await launch(page);
-  const minimap = page.getByLabel('Sector minimap');
+  const minimap = page.getByLabel('Galaxy position map');
   await expect(minimap).toBeVisible();
 
   // Hold the simulation still so the static assertions cannot race the ship
@@ -103,22 +103,28 @@ test('UX-T-076: the minimap reports the ship sector, charted fog, and live posit
   expect(await outline.count()).toBe(1);
   // Read the outline and the ship in one evaluation: sampling them separately
   // would race the ship crossing a sector boundary between the two reads.
-  expect(
-    await page.evaluate(() => {
-      const state = window.__GAME__!.state!;
-      const ship = state.ships.find(
-        (candidate) => candidate.id === state.playerShipId,
-      )!;
-      const node = document.querySelector<HTMLElement>('.vs-minimap__sector')!;
-      const painted = getComputedStyle(node)
-        .getPropertyValue('--minimap-sector-x')
-        .trim();
-      const expected = (
-        Math.floor(ship.position.x / 1_000 / 1_024) / state.width
-      ).toFixed(5);
-      return painted === expected;
-    }),
-  ).toBe(true);
+  // The marker is written every tick and the panel is rebuilt every fifth, so
+  // the painted value is eventually consistent rather than instantaneous.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const state = window.__GAME__!.state!;
+        const ship = state.ships.find(
+          (candidate) => candidate.id === state.playerShipId,
+        )!;
+        const node = document.querySelector<HTMLElement>(
+          '.vs-minimap__sector',
+        )!;
+        const painted = getComputedStyle(node)
+          .getPropertyValue('--minimap-sector-x')
+          .trim();
+        const expected = (
+          Math.floor(ship.position.x / 1_000 / 1_024) / state.width
+        ).toFixed(5);
+        return painted === expected;
+      }),
+    )
+    .toBe(true);
   await expect(minimap.locator('.vs-minimap__readout')).toContainText(
     `Sector ${sector.x + 1}.${sector.y + 1} of ${sector.width} by ${sector.height}`,
   );
@@ -228,7 +234,8 @@ test('T-M06-002: autopilot brakes to an interaction standoff so docking is legal
       { timeout: 20_000 },
     )
     .toBe(true);
-  await expect(page.locator('.vs-autopilot')).toHaveCount(0);
+  // The route ends by reporting arrival rather than by going blank.
+  await expect(page.locator('.vs-autopilot')).toContainText('Arrived');
 
   // And the dock actually succeeds from where autopilot left the ship.
   await page.evaluate((id) => {
@@ -287,8 +294,7 @@ test('T-M08-001: autopilot to a resource node leaves the ship able to mine', asy
               ship.position.x - target.position.x,
               ship.position.y - target.position.y,
             ) / 1_000;
-          const speed =
-            Math.hypot(ship.velocity.x, ship.velocity.y) / 1_000;
+          const speed = Math.hypot(ship.velocity.x, ship.velocity.y) / 1_000;
           return distance <= 96 && speed <= 8;
         }, node),
       { timeout: 20_000 },
@@ -352,7 +358,9 @@ test('UX-T-077: a mined deposit reports how much yield is left, and actions appe
               ship.position.x - target.position.x,
               ship.position.y - target.position.y,
             ) / 1_000;
-          return distance <= 96 && Math.hypot(ship.velocity.x, ship.velocity.y) === 0;
+          return (
+            distance <= 96 && Math.hypot(ship.velocity.x, ship.velocity.y) === 0
+          );
         }, node),
       { timeout: 20_000 },
     )
@@ -372,9 +380,7 @@ test('UX-T-077: a mined deposit reports how much yield is left, and actions appe
   // context bar already shows. The card now carries no action buttons, and the
   // context bar offers each action exactly once. (The contacts list keeps its
   // own per-contact buttons; those are not duplicates.)
-  expect(
-    await page.locator('.vs-target').getByRole('button').count(),
-  ).toBe(0);
+  expect(await page.locator('.vs-target').getByRole('button').count()).toBe(0);
   const contextBar = page.getByRole('navigation', { name: 'Context actions' });
   expect(
     await contextBar.getByRole('button', { name: 'Mine', exact: true }).count(),
@@ -456,14 +462,24 @@ test('T-M06-009: one tap on the map flies there; a tap on your own ship stops', 
   expect(await speed()).toBe(0);
 
   // A single tap on empty space commits the move; no second tap required.
-  await page.mouse.click(box.x + box.width - 60, box.y + 60);
+  // Tap above the ship, in the gap between the HUD panels: far enough from the
+  // centre not to be read as the stop gesture, and on the canvas itself.
+  const target = { x: box.x + box.width * 0.5, y: box.y + box.height * 0.28 };
+  expect(
+    await page.evaluate(
+      (point) => document.elementFromPoint(point.x, point.y)?.className,
+      target,
+    ),
+  ).toContain('vs-space-canvas');
+  await page.mouse.click(target.x, target.y);
   await expect.poll(speed).toBeGreaterThan(0);
   await expect(page.locator('.vs-autopilot')).toBeVisible();
 
   // Tapping the ship itself is the stop gesture.
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect.poll(speed, { timeout: 15_000 }).toBe(0);
-  await expect(page.locator('.vs-autopilot')).toHaveCount(0);
+  // The route is cancelled, which the status line reports rather than blanking.
+  await expect(page.locator('.vs-autopilot')).toContainText('Interrupted');
 });
 
 test('T-M06-010: one tap on a deposit both selects it and starts the approach', async ({
@@ -521,6 +537,9 @@ test('T-M05-008: a neutral port sells fuel by the unit, with the cost shown', as
   await page.evaluate(() => {
     window.__GAME__!.input({ type: 'launch' });
     window.__GAME__!.tick(1);
+    // Burn real fuel first, so the tank has room the port can sell into.
+    window.__GAME__!.input({ type: 'flight', throttle: 1, turn: 0 });
+    window.__GAME__!.tick(4_000);
   });
   await flyToEntity(page, neutral.id);
   await page.evaluate((id) => {
@@ -567,9 +586,9 @@ test('T-M05-008: a neutral port sells fuel by the unit, with the cost shown', as
   expect(Number(cost)).toBe(Number(units) * 3);
 
   await buy.click();
-  await expect.poll(async () => (await state()).fuel).toBe(
-    before.fuel + Number(units) * 100,
-  );
+  await expect
+    .poll(async () => (await state()).fuel)
+    .toBe(before.fuel + Number(units) * 100);
   expect((await state()).credits).toBe(before.credits - Number(cost));
 });
 
@@ -594,9 +613,15 @@ test('T-M18-008: all three peaceful acquisition actions are reachable at a neutr
   const actions = page.locator('.vs-influence-actions');
   await expect(actions).toBeVisible();
   // M18 defines three actions; only development aid used to have a button.
-  await expect(actions.getByRole('button', { name: /trade contract/ })).toBeVisible();
-  await expect(actions.getByRole('button', { name: /development aid/ })).toBeVisible();
-  await expect(actions.getByRole('button', { name: /Broadcast appeal/ })).toBeVisible();
+  await expect(
+    actions.getByRole('button', { name: /trade contract/ }),
+  ).toBeVisible();
+  await expect(
+    actions.getByRole('button', { name: /development aid/ }),
+  ).toBeVisible();
+  await expect(
+    actions.getByRole('button', { name: /Broadcast appeal/ }),
+  ).toBeVisible();
 
   const influence = () =>
     page.evaluate(
@@ -621,10 +646,7 @@ test('T-M12-007: refit is offered at a neutral port, priced above a home yard', 
   const home = page.getByRole('button', { name: 'Shipyard' }).first();
   await expect(home).toBeVisible();
   await home.click();
-  const homePrice = await page
-    .locator('.vs-module-card')
-    .first()
-    .textContent();
+  const homePrice = await page.locator('.vs-module-card').first().textContent();
 
   const neutral = await page.evaluate(() => {
     const state = window.__GAME__!.state!;
@@ -641,10 +663,7 @@ test('T-M12-007: refit is offered at a neutral port, priced above a home yard', 
   }, neutral);
 
   await page.getByRole('button', { name: 'Shipyard' }).first().click();
-  const awayPrice = await page
-    .locator('.vs-module-card')
-    .first()
-    .textContent();
+  const awayPrice = await page.locator('.vs-module-card').first().textContent();
   expect(awayPrice).not.toBe(homePrice);
 
   // A module states the stat it changes, not just a tier number.

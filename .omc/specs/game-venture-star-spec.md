@@ -3845,3 +3845,24 @@ The Phase 2 critique is closed for specification only when all conditions below 
 7. K-01 through K-10 experiments are executed at their gates and their binding fallback is used on failure; no release note substitutes for a failed threshold.
 
 Failure of any condition reopens the relevant critique ID and blocks the affected release. User approval of the design decisions does not waive verification evidence.
+## 15. Implementation audit and usability corrections — 2026-09-08
+
+The approved full target remains unchanged. The [implementation audit](../audits/2026-09-08-feature-audit.md) records implemented, partial and missing systems. The previous implementation's `1.0.0` label is not release-gate approval. Large maps and three rival entities alone do not satisfy the cumulative §1.9 gates.
+
+This correction pass prioritizes §9 screen clarity and the existing opening gameplay. These requirements supplement the original acceptance criteria:
+
+- Setup defaults to the player's selected `30×30` preference and offers every integer dimension from 10 through 30. Rival recommendation follows selected area, while the player's explicit rival choice remains editable. The page explains the all-planets goal, one irreplaceable flagship, and planning pause before launch.
+- Desktop setup at 1280×720 exposes the primary launch action; smaller and enlarged-text layouts scroll vertically without losing access to launch. Flight reserves a clear central view and keeps survival values, useful action labels and pause reachable in portrait and landscape.
+- Presentation receives current ship state while a pointer/key is held. Updating numeric values or save status must not cancel pointer capture, reset a setting draft, or steal focus from a text field or active control. Tactical camera initialization centers the flagship and wrap transitions use the shortest wrapped displacement.
+- Compact health meters show current health with capacity retained in accessible meter values. Enlarged text reflows the objective and conquest count. Repeated throttle taps use the latest throttle value, and one Escape press performs only one pause/modal transition.
+- The flight HUD keeps a compact local galaxy map visible at bottom-left. It uses a readable sector grid with the flagship centered and nearby contacts placed by direction and range, while touch controls remain clear below it.
+- Market rows preserve complete action labels and totals at desktop and mobile widths; long buy/sell labels wrap inside their buttons instead of clipping.
+- Terminal campaign fences persist independently of history records. Primary/recovery writes check the fence atomically so stale store instances cannot resurrect a sealed campaign, including after its record is deleted. A synchronous local-storage marker provides additional protection before the database seal completes when local storage is available.
+- Autopilot approaches and brakes using the existing authoritative flight rules. It must arrive within interaction range at a speed accepted by docking/mining, and manual steering/brake immediately cancels it. Route labels distinguish world units from sectors and never label a straight-line estimate as hazard-aware A*.
+- Autopilot braking begins from the calculated stopping distance and keeps a final brake step after arrival, so a clicked destination cannot turn into an orbit or post-arrival drift.
+- Refit uses authoritative credit and material costs and shows the actual numerical stat change. Same-tier purchases and downgrades are rejected without spending. Until inventory/swap/slot rules are implemented, their absence is recorded as an M12 gap rather than advertised as functioning loadout choices.
+- M05 fuel burn retains a saved fractional remainder so quantization cannot impose a minimum whole hundredth per tick. Low-speed powered flight costs less than high-speed powered flight, zero throttle costs zero, and save/reload retains accumulated burn. The emergency fuel advance follows M05's 15-FU/30-credit debt/cooldown rule.
+- M25 rewards transfer only quantities that fit. Uncollected material remains at the discovery; credits cannot be claimed twice and a full hold cannot erase the resource reward.
+- M26 asteroid damage uses the specified speed threshold and deterministic probability; slow or stationary travel is safe from abstract asteroid hits. Docked/undocking damage protection and replacement shipyard ownership are revalidated in the simulation.
+
+These are corrections to existing behavior, not permission to waive earlier mechanics, platform, persistence or full-campaign tests. Optional saved accumulator/guard fields default safely when loading older local states. Any remaining differences stay visible in the audit until implemented and verified.

@@ -19,8 +19,7 @@ export function influenceActions(
   planet: Planet,
 ): ContextAction[] {
   const tradeUsed = state.events.some(
-    (event) =>
-      event.type === 'INFLUENCE_TRADE' && event.entityId === planet.id,
+    (event) => event.type === 'INFLUENCE_TRADE' && event.entityId === planet.id,
   );
   const broadcast = state.events.findLast(
     (event) =>
@@ -61,15 +60,17 @@ export function influenceActions(
   ];
 }
 
-const MODULE_EFFECTS: Record<UpgradeFamily, { stat: string; tiers: [string, string] }> =
-  {
-    drill: { stat: 'Mining rate', tiers: ['+45%', '+95%'] },
-    hold: { stat: 'Cargo capacity', tiers: ['24 → 32', '24 → 44'] },
-    cell: { stat: 'Fuel capacity', tiers: ['80 → 96', '80 → 112'] },
-    surveyor: { stat: 'Sensor range', tiers: ['+35%', '+80%'] },
-    aegis: { stat: 'Shield', tiers: ['50 → 65', '50 → 80'] },
-    director: { stat: 'Weapon damage', tiers: ['10 → 15', '10 → 22'] },
-  };
+const MODULE_EFFECTS: Record<
+  UpgradeFamily,
+  { stat: string; tiers: [string, string] }
+> = {
+  drill: { stat: 'Mining rate', tiers: ['+45%', '+95%'] },
+  hold: { stat: 'Cargo capacity', tiers: ['24 → 32', '24 → 44'] },
+  cell: { stat: 'Fuel capacity', tiers: ['80 → 96', '80 → 112'] },
+  surveyor: { stat: 'Sensor range', tiers: ['+35%', '+80%'] },
+  aegis: { stat: 'Shield', tiers: ['50 → 65', '50 → 80'] },
+  director: { stat: 'Weapon damage', tiers: ['10 → 15', '10 → 22'] },
+};
 
 /** A refit offer priced for this port, saying exactly why it cannot be taken. */
 export function moduleCard(
@@ -115,4 +116,3 @@ export function moduleCard(
             : {}),
   };
 }
-

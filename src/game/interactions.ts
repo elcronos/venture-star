@@ -122,6 +122,8 @@ export function bombBlockedReason(
 }
 
 /** Spreads a blocking reason into a `ContextAction`-shaped object, or nothing. */
-export function blocked(reason: string | undefined): { disabledReason?: string } {
+export function blocked(reason: string | undefined): {
+  disabledReason?: string;
+} {
   return reason ? { disabledReason: reason } : {};
 }

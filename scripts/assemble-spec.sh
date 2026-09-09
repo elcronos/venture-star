@@ -18,6 +18,7 @@ staging="$target.assembled"
   sed -n '/^## 10\. Test Plan$/,$p' "$sections/game-venture-star-tests-stories.md"
   sed -n '/^## 12\. Cut List$/,$p' "$sections/game-venture-star-context.md"
   sed -n '/^## 13\. Risks$/,$p' "$sections/game-venture-star-risks-critique.md"
+  sed -n '/^## 15\. Implementation audit/,$p' "$sections/game-venture-star-implementation-status.md"
 } | sed '/CUT:AUDIO:START/,/CUT:AUDIO:END/d' > "$staging"
 
 mv "$staging" "$target"

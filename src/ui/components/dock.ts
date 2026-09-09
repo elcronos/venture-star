@@ -182,7 +182,7 @@ function market(state: UiState, dispatch: UiDispatch): HTMLElement {
             attrs: { id: 'market-heading', tabindex: -1 },
           }),
           el('p', {
-            text: 'Fixed local quotes. Transactions commit atomically.',
+            text: 'Buy supplies for your next journey, or sell cargo to fund a refit. Prices are per unit.',
           }),
         ]),
         el('span', {
@@ -207,9 +207,8 @@ function market(state: UiState, dispatch: UiDispatch): HTMLElement {
               'Sell at',
               'Quantity',
               'Action',
-            ].map(
-              (label) =>
-                el('span', { text: label, attrs: { role: 'columnheader' } }),
+            ].map((label) =>
+              el('span', { text: label, attrs: { role: 'columnheader' } }),
             ),
           ),
           ...dock.market.map((row) => marketRow(row, dock, dispatch)),
@@ -235,7 +234,10 @@ function market(state: UiState, dispatch: UiDispatch): HTMLElement {
  */
 function fuelRow(dock: DockState, dispatch: UiDispatch): HTMLElement {
   const offer = dock.fuelOffer;
-  const quantity = Math.max(1, Math.min(offer.quantity, offer.maxQuantity || 1));
+  const quantity = Math.max(
+    1,
+    Math.min(offer.quantity, offer.maxQuantity || 1),
+  );
   const setQuantity = (value: number) =>
     dispatch({
       type: 'market-quantity',
@@ -305,7 +307,8 @@ function fuelRow(dock: DockState, dispatch: UiDispatch): HTMLElement {
           button('Fill tank', () => setQuantity(offer.maxQuantity), {
             className: 'vs-button--compact',
             title: `Take as much as credits, stock and tank allow (${offer.maxQuantity})`,
-            disabledReason: offer.maxQuantity < 1 ? 'Cannot buy any' : undefined,
+            disabledReason:
+              offer.maxQuantity < 1 ? 'Cannot buy any' : undefined,
           }),
         ],
       ),
@@ -575,12 +578,12 @@ function shipyard(state: UiState, dispatch: UiDispatch): HTMLElement {
             attrs: { id: 'shipyard-heading', tabindex: -1 },
           }),
           el('p', {
-            text: 'Three generic slots. Review every resulting stat before fitting.',
+            text: 'Choose a system to improve. Review the full cost and resulting performance before fitting.',
           }),
         ]),
         el('span', {
           className: 'vs-chip',
-          text: `${state.dock.modules.filter((item) => item.installed).length}/3 slots`,
+          text: `${state.dock.modules.filter((item) => item.installed).length} upgraded systems`,
         }),
       ]),
       el(

@@ -30,9 +30,19 @@ function campaignSetup(state: UiState, dispatch: UiDispatch): HTMLElement {
     },
     { className: 'vs-button--compact' },
   );
-  const width = selectNumber('campaign-width', [10, 15, 20, 25, 30], 10);
-  const height = selectNumber('campaign-height', [10, 15, 20, 25, 30], 10);
-  const rivals = selectNumber('campaign-rivals', [1, 2, 3], 1);
+  const dimensions = Array.from({ length: 21 }, (_, index) => index + 10);
+  const width = selectNumber('campaign-width', dimensions, 30);
+  const height = selectNumber('campaign-height', dimensions, 30);
+  const rivals = selectNumber('campaign-rivals', [1, 2, 3], 3);
+  const rivalHint = el('small');
+  const updateRivalHint = () => {
+    const area = Number(width.value) * Number(height.value);
+    const recommended = area > 225 ? 3 : area > 100 ? 2 : 1;
+    rivalHint.textContent = `${recommended} ${recommended === 1 ? 'rival is' : 'rivals are'} recommended for this size.`;
+  };
+  width.addEventListener('change', updateRivalHint);
+  height.addEventListener('change', updateRivalHint);
+  updateRivalHint();
   const difficulty = el(
     'select',
     { attrs: { id: 'campaign-difficulty', name: 'difficulty' } },
@@ -74,7 +84,7 @@ function campaignSetup(state: UiState, dispatch: UiDispatch): HTMLElement {
     el('div', { className: 'vs-field' }, [
       el('label', { text: 'Rivals', attrs: { for: 'campaign-rivals' } }),
       rivals,
-      el('small', { text: '1 rival is recommended.' }),
+      rivalHint,
     ]),
     el('div', { className: 'vs-field' }, [
       el('label', {
@@ -140,7 +150,33 @@ export function renderHome(state: UiState, dispatch: UiDispatch): HTMLElement {
     [
       el('header', { className: 'vs-home__brand' }, [
         el('img', { attrs: { src: logoUrl, alt: 'Venture Star', width: 420 } }),
-        el('p', { text: 'A one-ship frontier strategy campaign' }),
+        el('p', { className: 'vs-eyebrow', text: 'Horizon Signal' }),
+        el('h2', {
+          className: 'vs-home__headline',
+          text: 'One ship. An uncharted frontier.',
+        }),
+        el('p', {
+          className: 'vs-home__intro',
+          text: 'Discover distant worlds, turn a hold of ore into a stronger ship, and bring every planet under your flag.',
+        }),
+        el('div', { className: 'vs-home__pillars' }, [
+          el('p', {}, [
+            icon('scanner'),
+            el('span', { text: 'Explore a galaxy that wraps at every edge.' }),
+          ]),
+          el('p', {}, [
+            icon('shipyard'),
+            el('span', { text: 'Mine, trade and refit at friendly worlds.' }),
+          ]),
+          el('p', {}, [
+            icon('planet'),
+            el('span', { text: 'Win planets through influence or force.' }),
+          ]),
+        ]),
+        el('p', {
+          className: 'vs-home__stakes',
+          text: 'Plan at your own pace: menus pause the galaxy. Protect your flagship — its destruction ends the campaign permanently.',
+        }),
         el('span', {
           className: 'vs-chip',
           text: `Version ${state.home.version}`,
@@ -189,6 +225,10 @@ export function renderHome(state: UiState, dispatch: UiDispatch): HTMLElement {
                   el('h2', {
                     text: 'New campaign',
                     attrs: { id: 'new-campaign-title' },
+                  }),
+                  el('p', {
+                    className: 'vs-muted',
+                    text: 'Your next expedition starts here.',
                   }),
                 ]),
                 icon('route'),

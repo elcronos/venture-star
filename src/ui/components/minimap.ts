@@ -120,7 +120,7 @@ export function renderMinimap(
     {
       className: 'vs-minimap',
       attrs: {
-        'aria-label': 'Sector minimap',
+        'aria-label': 'Galaxy position map',
         style: minimapVariables(minimap),
       },
     },

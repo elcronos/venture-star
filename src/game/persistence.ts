@@ -59,6 +59,15 @@ const restoredStateSchema = z
               y: z.number().finite(),
             }),
             hull: z.number().finite(),
+            fuelBurnRemainder: z.number().min(0).lt(1).optional(),
+            fuelDebt: z.number().nonnegative().finite().optional(),
+            rescueAtPlanet: z
+              .record(z.string(), z.number().int().nonnegative())
+              .optional(),
+            invulnerableUntilTick: z.number().int().nonnegative().optional(),
+            aiDestination: z
+              .object({ x: z.number().finite(), y: z.number().finite() })
+              .optional(),
             destroyed: z.boolean(),
           })
           .passthrough(),

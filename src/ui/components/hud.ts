@@ -41,7 +41,9 @@ function meter(
     ),
     el('span', {
       className: 'vs-meter__value',
-      text: `${formatNumber(state.current)}/${formatNumber(state.max)}`,
+      text: ['shield', 'armour', 'hull'].includes(iconName)
+        ? formatNumber(state.current)
+        : `${formatNumber(state.current)}/${formatNumber(state.max)}`,
     }),
   );
   if (critical)
@@ -179,27 +181,82 @@ function contacts(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   );
 }
 
-/**
- * The flight controls are stateful input surfaces holding pointer capture, so
- * they are built once and reused across HUD rebuilds rather than recreated.
- * Recreating them mid-drag drops the capture and the matching pointerup.
- */
-let cachedControls: {
-  dispatch: UiDispatch;
-  root: HTMLElement;
-  throttle: HTMLInputElement;
-  label: HTMLElement;
-} | null = null;
+/** Local contact radar: where things are relative to the ship, right now. */
+function radar(flight: FlightState): HTMLElement {
+  const maxDistance = Math.max(
+    240,
+    ...flight.contacts.map((contact) => contact.distance),
+  );
+  const directionAngle: Record<string, number> = {
+    N: 0,
+    NE: 45,
+    E: 90,
+    SE: 135,
+    S: 180,
+    SW: 225,
+    W: 270,
+    NW: 315,
+  };
+  const markers = flight.contacts.slice(0, 12).map((contact) => {
+    const angle = ((directionAngle[contact.direction] ?? 0) * Math.PI) / 180;
+    const radius = Math.min(42, 10 + (contact.distance / maxDistance) * 34);
+    const x = 50 + Math.sin(angle) * radius;
+    const y = 50 - Math.cos(angle) * radius;
+    return el('span', {
+      className: `vs-radar__contact relation-${contact.relation}${contact.selected ? ' is-selected' : ''}`,
+      attrs: {
+        title: `${contact.name} · ${formatNumber(contact.distance, 1)} wu`,
+        'aria-label': `${contact.name}, ${contact.direction}, ${formatNumber(contact.distance, 1)} world units`,
+        style: `--map-x:${x}%;--map-y:${y}%;`,
+      },
+    });
+  });
+  return el(
+    'section',
+    {
+      className: 'vs-radar vs-panel',
+      attrs: { 'aria-label': 'Local sector minimap' },
+    },
+    [
+      el('div', { className: 'vs-radar__heading' }, [
+        el('span', { className: 'vs-eyebrow', text: 'Local map' }),
+        el('strong', { text: `Sector ${flight.sector.x},${flight.sector.y}` }),
+      ]),
+      el(
+        'div',
+        {
+          className: 'vs-radar__grid',
+          attrs: {
+            role: 'img',
+            'aria-label': `${flight.contacts.length} nearby contacts`,
+          },
+        },
+        [
+          el('span', {
+            className: 'vs-radar__grid-center',
+            attrs: { 'aria-hidden': 'true' },
+          }),
+          el('span', {
+            className: 'vs-radar__ship',
+            attrs: { 'aria-label': 'Venture Star position' },
+          }),
+          ...markers,
+        ],
+      ),
+      el('span', {
+        className: 'vs-radar__legend',
+        text: 'Center: Venture Star · dots: contacts',
+      }),
+    ],
+  );
+}
 
+/**
+ * Built fresh each render. VentureUi keeps the live controls attached and
+ * discards this copy, so the node holding pointer capture and focus is never
+ * detached; caching the node here would move it and defeat that.
+ */
 function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
-  if (cachedControls?.dispatch === dispatch) {
-    const { root, throttle, label } = cachedControls;
-    // A slider being dragged owns its own value; do not fight the pointer.
-    if (document.activeElement !== throttle)
-      throttle.value = String(flight.throttle);
-    label.textContent = `Throttle ${flight.throttle}%`;
-    return root;
-  }
   const hold = (control: 'thrust' | 'left' | 'right' | 'brake') => {
     const node = button(
       control === 'brake' ? 'Brake' : control,
@@ -233,6 +290,11 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   throttle.addEventListener('input', () =>
     dispatch({ type: 'throttle', value: Number(throttle.value) }),
   );
+  const changeThrottle = (delta: number) => {
+    const value = Math.max(0, Math.min(100, Number(throttle.value) + delta));
+    throttle.value = String(value);
+    dispatch({ type: 'throttle', value });
+  };
   const joystick = el(
     'div',
     {
@@ -304,30 +366,74 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
         throttleLabel,
         throttle,
         el('span', { className: 'vs-throttle__buttons' }, [
-          button(
-            'Decrease throttle',
-            () =>
-              dispatch({
-                type: 'throttle',
-                value: Math.max(0, flight.throttle - 25),
-              }),
-            { className: 'vs-button--compact' },
-          ),
-          button(
-            'Increase throttle',
-            () =>
-              dispatch({
-                type: 'throttle',
-                value: Math.min(100, flight.throttle + 25),
-              }),
-            { className: 'vs-button--compact' },
-          ),
+          button('Decrease throttle', () => changeThrottle(-25), {
+            className: 'vs-button--compact',
+          }),
+          button('Increase throttle', () => changeThrottle(25), {
+            className: 'vs-button--compact',
+          }),
         ]),
       ]),
     ],
   );
-  cachedControls = { dispatch, root, throttle, label: throttleLabel };
   return root;
+}
+
+/** The flight chrome: where you are, and the screens you can reach from here. */
+function topBar(state: UiState, dispatch: UiDispatch): HTMLElement {
+  const { flight } = state;
+  return el('header', { className: 'vs-hud__top' }, [
+    el('div', { className: 'vs-hud__brand' }, [
+      el('strong', { text: 'VENTURE STAR' }),
+      el('span', { text: 'FRONTIER SURVEY' }),
+    ]),
+    el('div', { className: 'vs-sector' }, [
+      el('span', { className: 'vs-eyebrow', text: 'Sector' }),
+      el('strong', { text: `${flight.sector.x},${flight.sector.y}` }),
+      el(
+        'span',
+        {
+          className: `vs-danger danger-${flight.sector.danger.toLowerCase().replaceAll(' ', '-')}`,
+          text: flight.sector.danger,
+        },
+        [icon('danger')],
+      ),
+    ]),
+    button(
+      'Galaxy',
+      () => dispatch({ type: 'navigate', destination: 'galaxy' }),
+      { icon: 'route', className: 'vs-button--compact' },
+    ),
+    button('Scan', () => dispatch({ type: 'scan' }), {
+      icon: 'scanner',
+      className: 'vs-button--compact',
+    }),
+    button(
+      'Timeline',
+      () => dispatch({ type: 'open-overlay', overlay: 'timeline' }),
+      { icon: 'timeline', className: 'vs-button--compact' },
+    ),
+    button('Full stop', () => dispatch({ type: 'all-stop' }), {
+      icon: 'all-stop',
+      className: `vs-button--compact vs-button--allstop ${flight.allStop ? 'is-active' : ''}`,
+      title:
+        'Full stop (X) — cancels autopilot and brakes the ship to a halt, so you can dock, mine or line up a bomb.',
+    }),
+    state.pauseReasons.length
+      ? button(
+          'PAUSED',
+          () => dispatch({ type: 'open-overlay', overlay: 'pause' }),
+          { icon: 'pause', className: 'vs-button--warning' },
+        )
+      : button('Pause', () => dispatch({ type: 'pause' }), {
+          icon: 'pause',
+          className: 'vs-button--icon',
+        }),
+    el('span', {
+      className: `vs-save-state ${state.saveState === 'Save failed' ? 'is-critical' : ''}`,
+      text: state.saveState,
+    }),
+  ]);
 }
 
 export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
@@ -343,7 +449,7 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
     { className: 'vs-hud', attrs: { 'aria-labelledby': 'flight-title' } },
     [
       el('h1', {
-        className: 'vs-flight-title',
+        className: 'vs-flight-title vs-sr-only',
         text: `Flight — ${flight.campaignName}`,
         attrs: { id: 'flight-title' },
       }),
@@ -357,54 +463,7 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
         text: 'Skip to status',
         attrs: { href: '#ship-status' },
       }),
-      el('header', { className: 'vs-hud__top' }, [
-        el('div', { className: 'vs-sector' }, [
-          el('span', { className: 'vs-eyebrow', text: 'Sector' }),
-          el('strong', { text: `${flight.sector.x},${flight.sector.y}` }),
-          el(
-            'span',
-            {
-              className: `vs-danger danger-${flight.sector.danger.toLowerCase().replaceAll(' ', '-')}`,
-              text: flight.sector.danger,
-            },
-            [icon('danger')],
-          ),
-        ]),
-        button(
-          'Galaxy',
-          () => dispatch({ type: 'navigate', destination: 'galaxy' }),
-          { icon: 'route', className: 'vs-button--compact' },
-        ),
-        button('Scan', () => dispatch({ type: 'scan' }), {
-          icon: 'scanner',
-          className: 'vs-button--compact',
-        }),
-        button(
-          'Timeline',
-          () => dispatch({ type: 'open-overlay', overlay: 'timeline' }),
-          { icon: 'timeline', className: 'vs-button--compact' },
-        ),
-        button('Full stop', () => dispatch({ type: 'all-stop' }), {
-          icon: 'all-stop',
-          className: `vs-button--compact vs-button--allstop ${flight.allStop ? 'is-active' : ''}`,
-          title:
-            'Full stop (X) — cancels autopilot and brakes the ship to a halt, so you can dock, mine or line up a bomb.',
-        }),
-        state.pauseReasons.length
-          ? button(
-              'PAUSED',
-              () => dispatch({ type: 'open-overlay', overlay: 'pause' }),
-              { icon: 'pause', className: 'vs-button--warning' },
-            )
-          : button('Pause', () => dispatch({ type: 'pause' }), {
-              icon: 'pause',
-              className: 'vs-button--icon',
-            }),
-        el('span', {
-          className: `vs-save-state ${state.saveState === 'Save failed' ? 'is-critical' : ''}`,
-          text: state.saveState,
-        }),
-      ]),
+      topBar(state, dispatch),
       criticalAlert
         ? el(
             'div',
@@ -524,6 +583,7 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
           ),
         ),
       ),
+      radar(flight),
       touchControls(flight, dispatch),
       contacts(flight, dispatch),
     ],

@@ -25,10 +25,20 @@ import {
   type UpgradeFamily,
 } from './types';
 import {
+  canFly,
+  declareHostile,
+  dockedAt,
+  isHostile,
+  nearestPlanet,
+  recalculateStats,
+  steerToward,
+} from './rules';
+import {
   deserializeGame,
   serializeGame,
   validateRestoredState,
 } from './persistence';
+import { RandomStream } from './prng';
 
 /**
  * Refit price multiplier. A yard fits modules at cost; an ordinary port has to
@@ -294,6 +304,13 @@ export class GameEngine {
       a.id.localeCompare(b.id),
     )) {
       if (!canFly(ship)) continue;
+      if (ship.faction !== 'player' && ship.aiDestination && !ship.miningNodeId)
+        steerToward(
+          ship,
+          ship.aiDestination,
+          this.state.width,
+          this.state.height,
+        );
       const oldX = ship.position.x;
       const oldY = ship.position.y;
       const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
@@ -327,15 +344,14 @@ export class GameEngine {
         }
         const speedWu = newSpeed / SCALE;
         if (!ship.emergency) {
-          const burn = Math.max(
-            1,
-            Math.trunc(
-              ((ship.throttleBasisPoints / 10_000) *
-                (0.018 + 0.0000018 * speedWu * speedWu) *
-                100) /
-                TICKS_PER_SECOND,
-            ),
-          );
+          const exactBurn =
+            (ship.fuelBurnRemainder ?? 0) +
+            ((ship.throttleBasisPoints / 10_000) *
+              (0.018 + 0.0000018 * Math.min(speedWu, 220) ** 2) *
+              100) /
+              TICKS_PER_SECOND;
+          const burn = Math.min(ship.fuelHundredths, Math.floor(exactBurn));
+          ship.fuelBurnRemainder = exactBurn - Math.floor(exactBurn);
           ship.fuelHundredths = Math.max(0, ship.fuelHundredths - burn);
           if (ship.id === this.state.playerShipId)
             this.state.stats.fuelConsumedHundredths += burn;
@@ -350,6 +366,9 @@ export class GameEngine {
           (ship.velocity.y * (speed - reduction)) / speed,
         );
       }
+      // Integer authority never retains negative zero across a save boundary.
+      ship.velocity.x ||= 0;
+      ship.velocity.y ||= 0;
       ship.position.x = wrap(
         ship.position.x + Math.trunc(ship.velocity.x / TICKS_PER_SECOND),
         worldW,
@@ -375,13 +394,18 @@ export class GameEngine {
           ) <=
           (candidate.radius * SCALE) ** 2,
       );
-      if (hazard && this.state.tick - ship.lastDamageTick >= TICKS_PER_SECOND) {
-        this.damageShip(
-          ship,
-          hazard.severity === 'severe' ? 9 : 5,
-          'explosive',
-          hazard.id,
-        );
+      const hazardSpeed = Math.hypot(ship.velocity.x, ship.velocity.y) / SCALE;
+      const hazardHit =
+        hazard &&
+        hazardSpeed > 120 &&
+        this.state.tick % TICKS_PER_SECOND === 0 &&
+        new RandomStream(
+          this.state.seed,
+          'asteroid-risk',
+          `${hazard.id}:${ship.id}:${this.state.tick}`,
+        ).chance(Math.round(Math.min(0.5, (hazardSpeed - 120) / 240) * 10_000));
+      if (hazard && hazardHit) {
+        this.damageShip(ship, 8, 'collision', hazard.id);
         this.event(
           'HAZARD_DAMAGE',
           `${ship.id} struck debris in ${hazard.id}`,
@@ -510,8 +534,10 @@ export class GameEngine {
           INTERACTION_RANGE_MILLI ** 2
       )
         continue;
-      item.claimed = true;
+      const firstCollection = item.credits > 0;
       ship.credits += item.credits;
+      item.credits = 0;
+      let transferred = 0;
       for (const [material, amount] of Object.entries(item.cargo) as [
         Material,
         number,
@@ -521,9 +547,20 @@ export class GameEngine {
           ship.stats.cargoCapacity - cargoUsed(ship.cargo),
         );
         ship.cargo[material] += quantity;
+        item.cargo[material] = amount - quantity;
+        transferred += quantity;
       }
-      this.state.stats.discoveries++;
-      this.event('DISCOVERY', `Claimed ${item.kind}`, [ship.id], item.id);
+      item.claimed = Object.values(item.cargo).every((amount) => !amount);
+      if (item.claimed) this.state.stats.discoveries++;
+      if (firstCollection || transferred > 0)
+        this.event(
+          'DISCOVERY',
+          item.claimed
+            ? `Claimed ${item.kind}`
+            : `Recovered part of ${item.kind}; cargo remains`,
+          [ship.id],
+          item.id,
+        );
     }
   }
 
@@ -621,6 +658,12 @@ export class GameEngine {
         (candidate) => candidate.id === ship.selectedTargetId,
       );
       const target = targetShip ?? targetPlanet;
+      if (
+        targetShip &&
+        (targetShip.dockedPlanetId ||
+          this.state.tick < (targetShip.invulnerableUntilTick ?? 0))
+      )
+        continue;
       if (
         !target ||
         (targetShip
@@ -741,6 +784,7 @@ export class GameEngine {
         (candidate) => candidate.id === faction.shipId && !candidate.destroyed,
       );
       if (!ship) continue;
+      if (this.resupplyRival(faction, ship)) continue;
       const player = playerShip(this.state);
       if (faction.relationToPlayer === 'hostile' && !player.destroyed) {
         ship.selectedTargetId = player.id;
@@ -789,6 +833,110 @@ export class GameEngine {
     }
   }
 
+  /** A rival earns its next expansion budget by physically mining and selling. */
+  private resupplyRival(faction: Faction, ship: Ship): boolean {
+    const needsSupply =
+      faction.credits < 160 ||
+      faction.stock.ore < 4 ||
+      ship.fuelHundredths < 1600 ||
+      ship.emergency;
+    if (!needsSupply && !ship.miningNodeId && cargoUsed(ship.cargo) === 0)
+      return false;
+    const home = nearestPlanet(
+      this.state,
+      ship,
+      (planet) => planet.owner === faction.id,
+    );
+    if (!home) return false;
+    const returning =
+      cargoUsed(ship.cargo) >= ship.stats.cargoCapacity ||
+      (ship.fuelHundredths < 1600 &&
+        (faction.credits > 0 || cargoUsed(ship.cargo) > 0)) ||
+      ship.emergency;
+    if (returning) {
+      ship.miningNodeId = null;
+      steerToward(ship, home.position, this.state.width, this.state.height);
+      if (
+        wrappedDistance(
+          ship.position,
+          home.position,
+          this.state.width,
+          this.state.height,
+        ) > INTERACTION_RANGE_MILLI ||
+        Math.hypot(ship.velocity.x, ship.velocity.y) > 20 * SCALE
+      )
+        return true;
+      ship.velocity = { x: 0, y: 0 };
+      ship.throttleBasisPoints = 0;
+      ship.dockedPlanetId = home.id;
+      ship.credits = faction.credits;
+      const retainedOre = Math.min(
+        ship.cargo.ore,
+        Math.max(0, 8 - faction.stock.ore),
+      );
+      faction.stock.ore += retainedOre;
+      ship.cargo.ore -= retainedOre;
+      for (const material of ['ore', 'metal', 'crystal', 'exotic'] as const)
+        if (ship.cargo[material] > 0)
+          this.trade(ship, home.id, material, 'sell', ship.cargo[material]);
+      this.refuel(ship, home.id, Math.min(80, ship.credits));
+      if (ship.emergency) this.refuel(ship, home.id, 15);
+      faction.credits = ship.credits;
+      ship.dockedPlanetId = null;
+      this.event(
+        'RIVAL_RESUPPLY',
+        `${faction.id} delivered cargo and refuelled at ${home.name}`,
+        [faction.id, ship.id],
+        home.id,
+      );
+      return true;
+    }
+    if (ship.miningNodeId) return true;
+    const node = this.state.nodes
+      .filter(
+        (candidate) => candidate.material === 'ore' && candidate.remaining > 0,
+      )
+      .sort(
+        (a, b) =>
+          wrappedDistanceSquared(
+            ship.position,
+            a.position,
+            this.state.width,
+            this.state.height,
+          ) -
+            wrappedDistanceSquared(
+              ship.position,
+              b.position,
+              this.state.width,
+              this.state.height,
+            ) || a.id.localeCompare(b.id),
+      )[0];
+    if (!node) return false;
+    steerToward(ship, node.position, this.state.width, this.state.height);
+    if (
+      wrappedDistance(
+        ship.position,
+        node.position,
+        this.state.width,
+        this.state.height,
+      ) <= INTERACTION_RANGE_MILLI &&
+      Math.hypot(ship.velocity.x, ship.velocity.y) <= 8 * SCALE
+    ) {
+      ship.velocity = { x: 0, y: 0 };
+      ship.throttleBasisPoints = 0;
+      ship.miningNodeId = node.id;
+      ship.miningStartedTick = this.state.tick;
+      ship.miningReadyTick = this.state.tick + 47;
+      this.event(
+        'RIVAL_MINING',
+        `${faction.id} is mining to fund its next expedition`,
+        [faction.id, ship.id],
+        node.id,
+      );
+    }
+    return true;
+  }
+
   private producePlanets(): void {
     for (const planet of this.state.planets.sort((a, b) =>
       a.id.localeCompare(b.id),
@@ -810,6 +958,39 @@ export class GameEngine {
   }
 
   private reconstruct(faction: Faction): void {
+    if (faction.reconstruction) {
+      const build = faction.reconstruction;
+      const yard = this.state.planets.find(
+        (planet) => planet.id === build.planetId,
+      );
+      if (
+        !yard ||
+        yard.owner !== faction.id ||
+        !yard.hasShipyard ||
+        this.state.tick < yard.serviceLockUntilTick
+      ) {
+        build.unavailableSinceTick ??= this.state.tick;
+        build.completeTick += TICKS_PER_SECOND;
+        if (
+          this.state.tick - build.unavailableSinceTick >=
+          60 * TICKS_PER_SECOND
+        ) {
+          if (yard) {
+            yard.market.stock.metal += 10;
+            yard.market.stock.crystal += 5;
+          }
+          faction.reconstruction = null;
+          this.event(
+            'BUILD_CANCELLED',
+            `${faction.id} lost its reconstruction shipyard`,
+            [faction.id],
+            yard?.id,
+          );
+        }
+        return;
+      }
+      delete build.unavailableSinceTick;
+    }
     if (faction.shipId || faction.reconstruction) {
       if (
         faction.reconstruction &&
@@ -896,6 +1077,7 @@ export class GameEngine {
     };
     ship.dockedPlanetId = null;
     ship.weaponReadyTick = this.state.tick + 40;
+    ship.invulnerableUntilTick = this.state.tick + 40;
     this.state.running = true;
   }
 
@@ -926,8 +1108,12 @@ export class GameEngine {
       if (ship.cargo[material] < quantity) return;
       ship.cargo[material] -= quantity;
       planet.market.stock[material] += quantity;
-      ship.credits += price * quantity;
-      this.state.stats.tradeProfit += price * quantity;
+      const revenue = price * quantity;
+      const repayment = Math.min(ship.fuelDebt ?? 0, revenue);
+      ship.fuelDebt = (ship.fuelDebt ?? 0) - repayment;
+      ship.credits += revenue - repayment;
+      if (ship.faction === 'player')
+        this.state.stats.tradeProfit += price * quantity;
     }
     this.event(
       'TRADE',
@@ -943,6 +1129,28 @@ export class GameEngine {
     // denies refuelling. Docking already refuses rival-held planets.
     if (!planet || amount <= 0) return;
     if (planet.owner !== 'player' && planet.owner !== null) return;
+    // The credit-less rescue is a friendly-planet service, not a neutral one.
+    if (
+      planet.owner === ship.faction &&
+      ship.emergency &&
+      ship.credits < 1 &&
+      this.state.tick - (ship.rescueAtPlanet?.[planet.id] ?? -12_000) >= 12_000
+    ) {
+      ship.fuelHundredths = Math.min(
+        ship.stats.fuelCapacity * 100,
+        ship.fuelHundredths + 1500,
+      );
+      ship.fuelDebt = (ship.fuelDebt ?? 0) + 30;
+      (ship.rescueAtPlanet ??= {})[planet.id] = this.state.tick;
+      ship.emergency = false;
+      this.event(
+        'FUEL_RESCUE',
+        'Emergency advance: 15 fuel; 30 credits repaid from future sales',
+        [ship.id],
+        planet.id,
+      );
+      return;
+    }
     const units = Math.min(
       Math.floor(amount),
       planet.market.fuel,
@@ -977,6 +1185,8 @@ export class GameEngine {
   ): void {
     const planet = dockedAt(this.state, ship, planetId);
     if (!planet || (planet.owner !== 'player' && planet.owner !== null)) return;
+    // Refitting a tier already installed must never debit resources.
+    if ((ship.upgrades[family] ?? 0) >= tier) return;
     const base = UPGRADE_COSTS[family][tier];
     const cost = {
       ...base,
@@ -1208,7 +1418,13 @@ export class GameEngine {
     type: 'kinetic' | 'energy' | 'explosive' | 'collision',
     source: string,
   ): void {
-    if (raw <= 0 || ship.destroyed) return;
+    if (
+      raw <= 0 ||
+      ship.destroyed ||
+      ship.dockedPlanetId ||
+      this.state.tick < (ship.invulnerableUntilTick ?? 0)
+    )
+      return;
     ship.lastDamageTick = this.state.tick;
     if (type === 'collision') ship.hull -= raw;
     else {
@@ -1310,116 +1526,11 @@ export class GameEngine {
   }
 }
 
-
-function recalculateStats(ship: Ship): void {
-  const stats = baseStats();
-  const tier = (family: UpgradeFamily) => ship.upgrades[family] ?? 0;
-  if (tier('drill') === 1) stats.miningMilliPerSecond = 5200;
-  if (tier('drill') === 2) stats.miningMilliPerSecond = 6800;
-  if (tier('hold') === 1) stats.cargoCapacity = 36;
-  if (tier('hold') === 2) stats.cargoCapacity = 52;
-  if (tier('cell') === 1) stats.fuelCapacity = 112;
-  if (tier('cell') === 2) stats.fuelCapacity = 150;
-  if (tier('surveyor') === 1) stats.sensorRange = 430;
-  if (tier('surveyor') === 2) stats.sensorRange = 560;
-  if (tier('aegis') === 1) {
-    stats.maxShield = 78;
-    stats.shieldRegenMilliPerSecond = 7500;
-  }
-  if (tier('aegis') === 2) {
-    stats.maxShield = 112;
-    stats.shieldRegenMilliPerSecond = 9000;
-  }
-  if (tier('director') === 1) stats.weaponDamage = 15;
-  if (tier('director') === 2) {
-    stats.weaponDamage = 19;
-    stats.weaponCooldownTicks = 14;
-  }
-  ship.stats = stats;
-  ship.shield = Math.min(ship.shield, stats.maxShield);
-  ship.fuelHundredths = Math.min(ship.fuelHundredths, stats.fuelCapacity * 100);
-}
-
 function playerShip(state: GameState): Ship {
   return state.ships.find((ship) => ship.id === state.playerShipId)!;
 }
-function canFly(ship: Ship): boolean {
-  return !ship.destroyed && !ship.dockedPlanetId;
-}
-function dockedAt(
-  state: GameState,
-  ship: Ship,
-  planetId: string,
-): Planet | null {
-  return ship.dockedPlanetId === planetId
-    ? (state.planets.find((planet) => planet.id === planetId) ?? null)
-    : null;
-}
-function isHostile(state: GameState, a: FactionId, b: FactionId): boolean {
-  if (a === b) return false;
-  if (a === 'player')
-    return (
-      state.factions.find((f) => f.id === b)?.relationToPlayer === 'hostile'
-    );
-  if (b === 'player')
-    return (
-      state.factions.find((f) => f.id === a)?.relationToPlayer === 'hostile'
-    );
-  return true;
-}
-function declareHostile(state: GameState, a: FactionId, b: FactionId): void {
-  const rival = state.factions.find((f) => f.id === (a === 'player' ? b : a));
-  if (rival) rival.relationToPlayer = 'hostile';
-}
 export function planInterval(difficulty: GameState['difficulty']): number {
   return { Explorer: 120, Captain: 80, Strategist: 50 }[difficulty];
-}
-
-function nearestPlanet(
-  state: GameState,
-  ship: Ship,
-  predicate: (planet: Planet) => boolean,
-): Planet | null {
-  return (
-    state.planets
-      .filter(predicate)
-      .sort(
-        (a, b) =>
-          wrappedDistanceSquared(
-            ship.position,
-            a.position,
-            state.width,
-            state.height,
-          ) -
-            wrappedDistanceSquared(
-              ship.position,
-              b.position,
-              state.width,
-              state.height,
-            ) || a.id.localeCompare(b.id),
-      )[0] ?? null
-  );
-}
-
-function steerToward(
-  ship: Ship,
-  target: { x: number; y: number },
-  width: number,
-  height: number,
-): void {
-  const worldW = width * SECTOR_SIZE * SCALE;
-  const worldH = height * SECTOR_SIZE * SCALE;
-  const dx = wrappedDelta(ship.position.x, target.x, worldW);
-  const dy = wrappedDelta(ship.position.y, target.y, worldH);
-  ship.heading = wrap(
-    Math.round((Math.atan2(dy, dx) / (Math.PI * 2)) * 65_536),
-    65_536,
-  );
-  ship.throttleBasisPoints =
-    wrappedDistance(ship.position, target, width, height) >
-    INTERACTION_RANGE_MILLI
-      ? 7000
-      : 0;
 }
 
 function makeRebuiltShip(faction: FactionId, planet: Planet): Ship {

@@ -124,7 +124,7 @@ test('T-E2E-V0-002: deterministic flight reaches mining, discovery, trade, and r
   await page.getByRole('button', { name: 'Shipyard' }).click();
   const drillCard = page
     .locator('article.vs-module-card')
-    .filter({ has: page.getByRole('heading', { name: 'Helix Drill T1' }) });
+    .filter({ has: page.getByRole('heading', { name: 'Deepglass Drill T1' }) });
   await drillCard.getByRole('button', { name: 'Buy and fit' }).click();
 
   const final = await page.evaluate(() => {

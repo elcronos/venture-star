@@ -101,32 +101,30 @@ test('a passive tab cannot revive a campaign after its active save is sealed', a
         );
         transaction.objectStore('campaigns').delete(id);
         transaction.objectStore('campaigns').delete(`${id}:journal`);
-        transaction
-          .objectStore('records')
-          .put({
-            id,
-            sealedAt: Date.now(),
-            outcome: 'defeat',
-            state: {
-              record: {
-                id,
-                title: 'Venture Star',
-                outcome: 'Defeat',
-                seed: '0000000000000000',
-                startedAt: new Date().toISOString(),
-                endedAt: new Date().toISOString(),
-                simulationDuration: '0:00',
-                engagedDuration: '0:00',
-                wallSpan: '0:00',
-                dimensions: '10×10',
-                difficulty: 'Captain',
-                planetsControlled: '1/10',
-                discoveries: 0,
-                rulesVersion: '1.0.0',
-              },
-              serialized: '',
+        transaction.objectStore('records').put({
+          id,
+          sealedAt: Date.now(),
+          outcome: 'defeat',
+          state: {
+            record: {
+              id,
+              title: 'Venture Star',
+              outcome: 'Defeat',
+              seed: '0000000000000000',
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              simulationDuration: '0:00',
+              engagedDuration: '0:00',
+              wallSpan: '0:00',
+              dimensions: '10×10',
+              difficulty: 'Captain',
+              planetsControlled: '1/10',
+              discoveries: 0,
+              rulesVersion: '1.0.0',
             },
-          });
+            serialized: '',
+          },
+        });
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
       });

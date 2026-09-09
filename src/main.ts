@@ -14,6 +14,7 @@ import {
   miningBlockedReason,
 } from './game/interactions';
 import { cargoUsed, wrappedDelta, wrappedDistance } from './game/math';
+import { UPGRADE_COSTS } from './game/simulation';
 import {
   SCALE,
   SECTOR_SIZE,
@@ -26,6 +27,11 @@ import {
 import { installTestHook } from './devHook';
 import { VentureStore } from './persistence/store';
 import { SpaceCanvas } from './render/spaceCanvas';
+import { actionsFor } from './ui/contextActions';
+import { formatTime, playerShip, sectorOf } from './game/view';
+import { dangerAt, objectiveFor, recordFromState } from './ui/campaignSummary';
+import { nearbyContacts, targetState } from './ui/contacts';
+import { findEntityInState, meter, relation } from './ui/entities';
 import { influenceActions, moduleCard } from './ui/dockOffers';
 import { tradeSummary } from './ui/tradeSummary';
 import { emptyUiState as buildEmptyUiState } from './ui/emptyState';
@@ -91,7 +97,16 @@ let autopilot: {
   /** World units to stop short of the target, so it stays in interaction range. */
   standoff: number;
   phase: 'Travelling' | 'Braking' | 'Arrived';
+  /** Route start, so incoming damage after it can interrupt the approach. */
+  startedTick: number;
+  /** Set when the route follows a moving entity rather than a fixed point. */
+  entityId?: string;
 } | null = null;
+let flightMessage = '';
+let galaxyZoom = 1;
+let selectedModuleId: string | undefined;
+let settingsBeforeEdit: SettingsState | null = null;
+const dismissedAlerts = new Set<string>();
 let controls = {
   thrust: false,
   left: false,
@@ -110,27 +125,30 @@ let uiState = emptyUiState();
 const ui = mountVentureUi(root, uiState, dispatchUi);
 const space = new SpaceCanvas(ui.getCanvasHost(), {
   reducedMotion: () => settings.reducedMotion,
+  destination: () => autopilot,
   onWorldTap: (x, y) => {
-    if (!engine) return;
+    if (!engine || destination !== 'flight' || overlay) return;
+    clearFlightInputs();
     autopilot = {
       x,
       y,
       name: 'selected coordinates',
       standoff: POINT_STANDOFF_WU,
       phase: 'Travelling',
+      startedTick: engine.snapshot().tick,
     };
     destination = 'flight';
     resumeSimulation();
   },
   onEntityTap: (id) => {
-    if (!engine) return;
+    if (!engine || destination !== 'flight' || overlay) return;
     // One tap both selects the target and starts the approach: making the
     // player tap twice to go somewhere is the thing they asked us to remove.
     selectEntity(id);
     setAutopilotTo(id);
   },
   onSelfTap: () => {
-    if (engine) beginAllStop();
+    if (engine && destination === 'flight' && !overlay) beginAllStop();
   },
 });
 
@@ -138,6 +156,10 @@ void boot();
 
 async function boot(): Promise<void> {
   settings = await store.getSetting('settings', DEFAULT_SETTINGS);
+  uiState.galaxy.filters = await store.getSetting(
+    'mapFilters',
+    uiState.galaxy.filters,
+  );
   const storedRecords = await store.records<StoredRecord>();
   records = storedRecords.map((entry) => entry.state.record);
   const stored = await store.newestCampaign<StoredCampaign>();
@@ -153,6 +175,15 @@ async function boot(): Promise<void> {
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('keydown', onKey, { passive: false });
   window.addEventListener('keyup', onKey, { passive: false });
+  window.addEventListener('blur', clearFlightInputs);
+  window.addEventListener('resize', clearFlightInputs);
+  document.addEventListener('focusin', (event) => {
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.matches('input, select, textarea')
+    )
+      clearFlightInputs();
+  });
   setInterval(gameLoop, 1000 / TICKS_PER_SECOND);
   setInterval(() => void saveCampaign(), 5000);
   setInterval(() => void journalCampaign(), 10_000);
@@ -193,6 +224,7 @@ function gameLoop(): void {
     advanced = true;
   }
   const state = engine.snapshot();
+  space.setState(state);
   const player = playerShip(state);
   visited.add(`${sectorOf(player.position.x)},${sectorOf(player.position.y)}`);
   const controlHeld =
@@ -221,6 +253,8 @@ function gameLoop(): void {
 
 /** Cuts autopilot and throttle, then holds the brake until the ship is at rest. */
 function beginAllStop(): void {
+  if (autopilot) flightMessage = 'Interrupted: Full stop';
+  else flightMessage = 'Full stop';
   allStop = true;
   autopilot = null;
   controls.throttle = 0;
@@ -242,6 +276,78 @@ const ARRIVAL_SPEED_MILLI = 0;
 const INTERACTION_STANDOFF_WU = 84;
 /** A bare coordinate has nothing to keep clear of. */
 const POINT_STANDOFF_WU = 24;
+
+/**
+ * Runs one step of the route: interrupt checks, then brake-to-stop steering.
+ * Returns null when the route itself already issued the command for this tick.
+ */
+function steerAutopilot(
+  state: GameState,
+  ship: Ship,
+  throttle: number,
+  turn: -1 | 0 | 1,
+  brake: boolean,
+): { throttle: number; turn: -1 | 0 | 1; brake: boolean } | null {
+  if (!autopilot) return { throttle, turn, brake };
+
+  const target = autopilot.entityId
+    ? findEntityInState(state, autopilot.entityId)
+    : null;
+  if (
+    autopilot.entityId &&
+    (!target || ('destroyed' in target && target.destroyed))
+  ) {
+    interruptAutopilot('Destination is no longer available');
+    send({ type: 'flight', throttle: 0, turn: 0, brake: true });
+    return null;
+  }
+  if (ship.lastDamageTick > autopilot.startedTick) {
+    interruptAutopilot('Incoming damage — take control');
+    send({ type: 'flight', throttle: 0, turn: 0, brake: true });
+    return null;
+  }
+  if (target) {
+    autopilot.x = target.position.x;
+    autopilot.y = target.position.y;
+  }
+  const worldWidth = state.width * SECTOR_SIZE * SCALE;
+  const worldHeight = state.height * SECTOR_SIZE * SCALE;
+  const dx = wrappedDelta(ship.position.x, autopilot.x, worldWidth);
+  const dy = wrappedDelta(ship.position.y, autopilot.y, worldHeight);
+  const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
+  // Distance still to cover before the ship should be at a standstill.
+  const remaining = Math.hypot(dx, dy) - autopilot.standoff * SCALE;
+  // Ship-frame braking distance, matching the simulation's own deceleration.
+  const stopping = speed ** 2 / (2 * BRAKE_WU_PER_SECOND * SCALE);
+  const desired = normalizeTurn((Math.atan2(dy, dx) / (Math.PI * 2)) * 65_536);
+  const error = signedHeadingDelta(ship.heading, desired);
+
+  if (remaining <= 0 && speed <= ARRIVAL_SPEED_MILLI) {
+    // Arrived and stopped, so docking, mining and bombing are all legal.
+    flightMessage = `Arrived: ${autopilot.name}`;
+    autopilot = null;
+    controls.throttle = 0;
+    throttle = 0;
+    turn = 0;
+    render();
+  } else if (remaining <= stopping) {
+    // Coasting is far too weak to stop in range: brake under power instead.
+    autopilot.phase = 'Braking';
+    flightMessage = `Braking: ${autopilot.name}`;
+    throttle = 0;
+    turn = 0;
+    brake = true;
+  } else {
+    autopilot.phase = 'Travelling';
+    turn = Math.abs(error) < 600 ? 0 : error < 0 ? -1 : 1;
+    // Never build speed while pointing the wrong way; it only costs fuel and
+    // lengthens the approach.
+    throttle =
+      Math.abs(error) > 8_000 ? 0 : remaining < 240 * SCALE ? 0.35 : 0.82;
+    flightMessage = `Travelling: ${autopilot.name} · ${Math.round(Math.max(0, remaining) / SCALE)} wu`;
+  }
+  return { throttle, turn, brake };
+}
 
 function applyFlightIntent(state: GameState): void {
   const ship = playerShip(state);
@@ -268,39 +374,9 @@ function applyFlightIntent(state: GameState): void {
   let throttle = controls.thrust ? 1 : controls.throttle;
   let brake = controls.brake;
   if (autopilot) {
-    const worldWidth = state.width * SECTOR_SIZE * SCALE;
-    const worldHeight = state.height * SECTOR_SIZE * SCALE;
-    const dx = wrappedDelta(ship.position.x, autopilot.x, worldWidth);
-    const dy = wrappedDelta(ship.position.y, autopilot.y, worldHeight);
-    const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
-    // Distance still to cover before the ship should be at a standstill.
-    const remaining =
-      Math.hypot(dx, dy) - autopilot.standoff * SCALE;
-    // Ship-frame braking distance, matching the simulation's own deceleration.
-    const stopping = speed ** 2 / (2 * BRAKE_WU_PER_SECOND * SCALE);
-    const desired = normalizeTurn((Math.atan2(dy, dx) / (Math.PI * 2)) * 65_536);
-    const error = signedHeadingDelta(ship.heading, desired);
-
-    if (remaining <= 0 && speed <= ARRIVAL_SPEED_MILLI) {
-      // Arrived and slow enough to dock, mine, or bomb. Hand back control.
-      autopilot = null;
-      throttle = 0;
-      turn = 0;
-      render();
-    } else if (remaining <= stopping) {
-      // Coasting is far too weak to stop in range: brake under power instead.
-      autopilot.phase = 'Braking';
-      throttle = 0;
-      turn = 0;
-      brake = true;
-    } else {
-      autopilot.phase = 'Travelling';
-      turn = Math.abs(error) < 600 ? 0 : error < 0 ? -1 : 1;
-      // Never build speed while pointing the wrong way; it only costs fuel and
-      // lengthens the approach.
-      throttle =
-        Math.abs(error) > 8_000 ? 0 : remaining < 240 * SCALE ? 0.35 : 0.82;
-    }
+    const steered = steerAutopilot(state, ship, throttle, turn, brake);
+    if (!steered) return;
+    ({ throttle, turn, brake } = steered);
   }
   send({
     type: 'flight',
@@ -308,6 +384,23 @@ function applyFlightIntent(state: GameState): void {
     turn,
     ...(brake ? { brake: true } : {}),
   });
+}
+
+function clearFlightInputs(): void {
+  joystickActive = false;
+  controls = {
+    thrust: false,
+    left: false,
+    right: false,
+    brake: false,
+    throttle: 0,
+  };
+}
+
+function interruptAutopilot(reason: string): void {
+  if (autopilot) flightMessage = `Interrupted: ${reason}`;
+  autopilot = null;
+  allStop = false;
 }
 
 function dispatchUi(action: UiAction): void {
@@ -322,10 +415,14 @@ function dispatchUi(action: UiAction): void {
       navigate(action.destination);
       break;
     case 'open-overlay':
+      if (action.overlay === 'settings') settingsBeforeEdit = { ...settings };
       overlay = action.overlay;
       pauseSimulation();
       break;
     case 'close-overlay':
+      if (overlay === 'settings' && settingsBeforeEdit)
+        settings = settingsBeforeEdit;
+      settingsBeforeEdit = null;
       overlay = undefined;
       break;
     case 'pause':
@@ -338,12 +435,8 @@ function dispatchUi(action: UiAction): void {
       resumeSimulation();
       break;
     case 'return-home':
-      void saveCampaign();
-      destination = 'home';
-      overlay = undefined;
-      pauseSimulation();
-      releaseLease();
-      break;
+      void returnHome();
+      return;
     case 'launch':
       launch();
       break;
@@ -360,10 +453,7 @@ function dispatchUi(action: UiAction): void {
       break;
     case 'flight-control':
       controls[action.control] = action.active;
-      if (action.active) {
-        autopilot = null;
-        allStop = false;
-      }
+      if (action.active) interruptAutopilot('Manual control');
       return;
     case 'all-stop':
       beginAllStop();
@@ -378,21 +468,20 @@ function dispatchUi(action: UiAction): void {
           0.2,
           Math.min(1, Math.hypot(action.x, action.y)),
         );
-        autopilot = null;
-        allStop = false;
+        interruptAutopilot('Manual steering');
+        controls.throttle = Math.max(
+          0.2,
+          Math.min(1, Math.hypot(action.x, action.y)),
+        );
+      } else {
+        controls.throttle = 0;
       }
       return;
     case 'clear-flight-inputs':
-      joystickActive = false;
-      controls = {
-        ...controls,
-        thrust: false,
-        left: false,
-        right: false,
-        brake: false,
-      };
+      clearFlightInputs();
       return;
     case 'throttle':
+      interruptAutopilot('Manual throttle');
       controls.throttle = Math.max(0, Math.min(1, action.value / 100));
       if (controls.throttle > 0) allStop = false;
       return;
@@ -409,9 +498,11 @@ function dispatchUi(action: UiAction): void {
       centerMap();
       break;
     case 'galaxy-zoom':
+      galaxyZoom = Math.max(0.5, Math.min(3, galaxyZoom + action.delta * 0.25));
       break;
     case 'galaxy-filter':
       uiState.galaxy.filters[action.filter] = action.enabled;
+      void store.setSetting('mapFilters', uiState.galaxy.filters);
       break;
     case 'dock-tab':
       dockTab = action.tab;
@@ -423,6 +514,7 @@ function dispatchUi(action: UiAction): void {
       trade(action.rowId as Material, action.side, action.quantity);
       break;
     case 'select-module':
+      selectedModuleId = action.moduleId;
       break;
     case 'fit-module':
       fitModule(action.moduleId);
@@ -449,6 +541,7 @@ function dispatchUi(action: UiAction): void {
       focusTimelineEntity(action.eventId);
       break;
     case 'dismiss-alert':
+      dismissedAlerts.add(action.alertId);
       break;
     case 'settings-change':
       settings = action.settings;
@@ -456,6 +549,7 @@ function dispatchUi(action: UiAction): void {
     case 'settings-apply':
       settings = action.settings;
       overlay = undefined;
+      settingsBeforeEdit = null;
       void store.setSetting('settings', settings);
       break;
     case 'settings-reset-presentation':
@@ -468,11 +562,25 @@ function dispatchUi(action: UiAction): void {
   render();
 }
 
+async function returnHome(): Promise<void> {
+  pauseSimulation();
+  await saveCampaign();
+  if (saveState === 'Save failed') {
+    overlay = 'pause';
+    render();
+    return;
+  }
+  destination = 'home';
+  overlay = undefined;
+  releaseLease();
+  render();
+}
+
 function createCampaign(config?: CampaignSetup): void {
   if (engine?.snapshot().outcome === 'active') {
     const previous = engine.snapshot();
     const record = {
-      ...recordFromState(previous),
+      ...recordFromState(previous, startedAt),
       outcome: 'Abandoned' as const,
     };
     records = [record, ...records];
@@ -509,6 +617,8 @@ function createCampaign(config?: CampaignSetup): void {
   selectedId = null;
   selectedCell = null;
   autopilot = null;
+  flightMessage = '';
+  clearFlightInputs();
   sealed = false;
   sealing = false;
   acquireLease(state.campaignId);
@@ -567,6 +677,7 @@ function launch(): void {
 }
 
 function pauseSimulation(): void {
+  clearFlightInputs();
   if (!engine || !engine.snapshot().running) return;
   send({ type: 'pause', paused: true });
   flush();
@@ -594,15 +705,29 @@ function selectEntity(id: string): void {
 }
 
 function setAutopilotTo(id: string): void {
+  if (!engine) return;
   const entity = findEntity(id);
   if (!entity) return;
   selectedId = id;
+  clearFlightInputs();
+  send({ type: 'stopMining' });
+  send({ type: 'selectTarget', targetId: id });
   autopilot = {
     x: entity.position.x,
     y: entity.position.y,
-    name: 'name' in entity ? entity.name : id,
+    // Their naming reads better than a bare id for nodes and discoveries.
+    name:
+      'name' in entity
+        ? entity.name
+        : 'material' in entity
+          ? `${entity.material} deposit`
+          : 'kind' in entity
+            ? entity.kind.replaceAll('-', ' ')
+            : 'contact',
     standoff: INTERACTION_STANDOFF_WU,
     phase: 'Travelling',
+    startedTick: engine.snapshot().tick,
+    entityId: id,
   };
   destination = 'flight';
   resumeSimulation();
@@ -613,9 +738,10 @@ function startSelectedRoute(): void {
   autopilot = {
     x: (selectedCell.x * SECTOR_SIZE + SECTOR_SIZE / 2) * SCALE,
     y: (selectedCell.y * SECTOR_SIZE + SECTOR_SIZE / 2) * SCALE,
-    name: `sector ${selectedCell.x + 1},${selectedCell.y + 1}`,
+    name: `Sector ${selectedCell.x + 1},${selectedCell.y + 1}`,
     standoff: POINT_STANDOFF_WU,
     phase: 'Travelling',
+    startedTick: engine.snapshot().tick,
   };
   destination = 'flight';
   resumeSimulation();
@@ -692,9 +818,7 @@ function useDockService(
       type: 'influence',
       planetId,
       action: service.slice('influence-'.length) as
-        | 'trade'
-        | 'aid'
-        | 'broadcast',
+        'trade' | 'aid' | 'broadcast',
     });
   flush();
 }
@@ -779,6 +903,8 @@ async function saveCampaign(): Promise<void> {
     saveState = 'Saved';
   } catch {
     saveState = 'Save failed';
+    pauseSimulation();
+    overlay = 'pause';
   }
   render();
 }
@@ -791,21 +917,28 @@ async function journalCampaign(): Promise<void> {
   )
     return;
   const state = engine.snapshot();
-  await store.journalCampaign(
-    state.campaignId,
-    {
-      serialized: engine.serialize(),
-      visited: [...visited].sort(),
-      startedAt,
-    } satisfies StoredCampaign,
-    () => ownsLease(state.campaignId),
-  );
+  try {
+    await store.journalCampaign(
+      state.campaignId,
+      {
+        serialized: engine.serialize(),
+        visited: [...visited].sort(),
+        startedAt,
+      } satisfies StoredCampaign,
+      () => ownsLease(state.campaignId),
+    );
+  } catch {
+    saveState = 'Save failed';
+    pauseSimulation();
+    overlay = 'pause';
+    render();
+  }
 }
 
 async function sealIfNeeded(state: GameState): Promise<void> {
   if (sealed || sealing || state.outcome === 'active') return;
   sealing = true;
-  const record = recordFromState(state);
+  const record = recordFromState(state, startedAt);
   records = [record, ...records];
   try {
     await store.sealRecord(state.campaignId, state.outcome, {
@@ -834,14 +967,15 @@ function emptyUiState(): UiState {
 }
 
 function buildUiState(): UiState {
-  if (!engine) return emptyUiState();
+  if (!engine)
+    return { ...emptyUiState(), settings, ...(overlay ? { overlay } : {}) };
   const state = engine.snapshot();
   const ship = playerShip(state);
   const docked =
     state.planets.find((planet) => planet.id === ship.dockedPlanetId) ??
     state.planets.find((planet) => planet.owner === 'player')!;
   const selected = selectedId ? findEntityInState(state, selectedId) : null;
-  const contacts = nearbyContacts(state, ship);
+  const contacts = nearbyContacts(state, ship, selectedId);
   const cells = galaxyCells(state, ship);
   const minimap = minimapState(state, ship, cells);
   const timeline = state.events
@@ -917,8 +1051,11 @@ function buildUiState(): UiState {
       speed: Math.hypot(ship.velocity.x, ship.velocity.y) / SCALE,
       throttle: Math.max(0, Math.round(ship.throttleBasisPoints / 100)),
       heading: Math.round((ship.heading / 65_536) * 360),
-      ...(autopilot
-        ? { autopilot: `${autopilot.phase}: ${autopilot.name}` }
+      ...(flightMessage || autopilot
+        ? {
+            autopilot:
+              flightMessage || `${autopilot!.phase}: ${autopilot!.name}`,
+          }
         : {}),
       ...(ship.miningNodeId
         ? {
@@ -941,7 +1078,9 @@ function buildUiState(): UiState {
       ...(selected ? { target: targetState(state, ship, selected) } : {}),
       contacts,
       actions: selected ? actionsFor(state, ship, selected) : [],
-      alerts: timeline.slice(0, 4),
+      alerts: timeline
+        .filter((event) => !dismissedAlerts.has(event.id))
+        .slice(0, 1),
       timeline,
       emergencyDrift: ship.emergency,
       minimap,
@@ -951,7 +1090,7 @@ function buildUiState(): UiState {
       width: state.width,
       height: state.height,
       cells,
-      zoom: 1,
+      zoom: galaxyZoom,
       ...(selectedCell
         ? { route: routeForecast(state, ship, selectedCell.x, selectedCell.y) }
         : {}),
@@ -981,16 +1120,15 @@ function buildUiState(): UiState {
   return base;
 }
 
-
 function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
   const materials: Material[] = ['ore', 'metal', 'crystal', 'exotic'];
   const modules: Array<{ family: UpgradeFamily; name: string }> = [
-    { family: 'drill', name: 'Helix Drill' },
-    { family: 'hold', name: 'Expanded Hold' },
-    { family: 'cell', name: 'Frontier Cell' },
-    { family: 'surveyor', name: 'Survey Array' },
-    { family: 'aegis', name: 'Aegis Screen' },
-    { family: 'director', name: 'Pulse Director' },
+    { family: 'drill', name: 'Deepglass Drill' },
+    { family: 'hold', name: 'Folded Hold' },
+    { family: 'cell', name: 'Longwake Cell' },
+    { family: 'surveyor', name: 'Prism Surveyor' },
+    { family: 'aegis', name: 'Aegis Loom' },
+    { family: 'director', name: 'Helix Director' },
   ];
   return {
     planetName: planet.name,
@@ -1003,6 +1141,7 @@ function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
     fuel: meter(ship.fuelHundredths / 100, ship.stats.fuelCapacity, 'Fuel'),
     hull: meter(ship.hull, 120, 'Hull'),
     bombs: ship.bombs,
+    ...(selectedModuleId ? { selectedModuleId } : {}),
     ...(planet.owner === null
       ? {
           influence: planet.influence.player ?? 0,
@@ -1036,191 +1175,8 @@ function dockState(state: GameState, ship: Ship, planet: Planet): DockState {
   };
 }
 
-function nearbyContacts(
-  state: GameState,
-  ship: Ship,
-): UiState['flight']['contacts'] {
-  const entities = [
-    ...state.planets,
-    ...state.nodes.filter((node) => node.remaining > 0),
-    ...state.discoveries.filter((item) => !item.claimed),
-    ...state.ships.filter((item) => item.id !== ship.id && !item.destroyed),
-  ];
-  return entities
-    .map((entity) => ({
-      entity,
-      distance:
-        wrappedDistance(
-          ship.position,
-          entity.position,
-          state.width,
-          state.height,
-        ) / SCALE,
-    }))
-    .filter(({ distance }) => distance <= ship.stats.sensorRange * 1.6)
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, 12)
-    .map(({ entity, distance }) => ({
-      id: entity.id,
-      name:
-        'name' in entity
-          ? entity.name
-          : 'material' in entity
-            ? `${entity.material} deposit`
-            : 'kind' in entity
-              ? entity.kind.replaceAll('-', ' ')
-              : entity.faction,
-      type:
-        'market' in entity
-          ? 'Planet'
-          : 'material' in entity
-            ? 'Resource'
-            : 'kind' in entity
-              ? 'Discovery'
-              : 'Ship',
-      relation:
-        'owner' in entity
-          ? relation(entity.owner)
-          : 'faction' in entity
-            ? relation(entity.faction)
-            : 'neutral',
-      direction: bearing(ship.position, entity.position, state),
-      distance: Math.round(distance),
-      selected: entity.id === selectedId,
-      threat: 'faction' in entity && entity.faction !== 'player',
-      interactable: distance <= 110,
-    }));
-}
-
-function actionsFor(
-  state: GameState,
-  ship: Ship,
-  entity: ReturnType<typeof findEntityInState>,
-): ContextAction[] {
-  if (!entity) return [];
-  const distance =
-    wrappedDistance(ship.position, entity.position, state.width, state.height) /
-    SCALE;
-  // Moving is a tap on the map, not a button, so no travel action appears here.
-  // The contacts list keeps a per-contact "Fly here" as the keyboard route.
-  if ('material' in entity)
-    return [
-      {
-        id: ship.miningNodeId === entity.id ? 'stop-mining' : 'mine',
-        label: ship.miningNodeId === entity.id ? 'Stop mining' : 'Mine',
-        icon: 'mining' as const,
-        ...blocked(miningBlockedReason(ship, entity, distance)),
-      },
-    ];
-  if ('market' in entity) {
-    const result: ContextAction[] = [
-      {
-        id: 'dock',
-        label: 'Dock',
-        icon: 'planet',
-        ...blocked(dockBlockedReason(state, ship, entity, distance)),
-      },
-    ];
-    if (entity.owner !== 'player')
-      result.push({
-        id: 'bomb',
-        label: 'Bomb',
-        icon: 'bomb' as const,
-        destructive: true,
-        ...blocked(bombBlockedReason(state, ship, distance)),
-      });
-    return result;
-  }
-  if ('faction' in entity)
-    return [
-      {
-        id: 'bomb',
-        label: 'Bomb',
-        icon: 'bomb' as const,
-        destructive: true,
-        ...blocked(bombBlockedReason(state, ship, distance)),
-      },
-      {
-        id: ship.holdFire ? 'autofire' : 'hold-fire',
-        label: ship.holdFire ? 'Auto fire' : 'Hold fire',
-        icon: 'weapon' as const,
-      },
-    ];
-  return [];
-}
-
-function targetState(
-  state: GameState,
-  ship: Ship,
-  entity: NonNullable<ReturnType<typeof findEntityInState>>,
-): NonNullable<UiState['flight']['target']> {
-  const distance =
-    wrappedDistance(ship.position, entity.position, state.width, state.height) /
-    SCALE;
-  const name =
-    'name' in entity
-      ? entity.name
-      : 'material' in entity
-        ? `${entity.material} deposit`
-        : 'kind' in entity
-          ? entity.kind.replaceAll('-', ' ')
-          : entity.faction;
-  return {
-    id: entity.id,
-    name,
-    type:
-      'market' in entity
-        ? 'Planet'
-        : 'material' in entity
-          ? 'Resource'
-          : 'kind' in entity
-            ? 'Discovery'
-            : 'Ship',
-    relation:
-      'owner' in entity
-        ? relation(entity.owner)
-        : 'faction' in entity
-          ? relation(entity.faction)
-          : 'neutral',
-    distance: Math.round(distance),
-    intel: 'LIVE',
-    rangeState: distance <= 100 ? 'Interaction range' : 'Approach required',
-    ...('shield' in entity
-      ? {
-          shield: meter(
-            entity.shield,
-            'stats' in entity ? entity.stats.maxShield : 50,
-            'Shield',
-          ),
-        }
-      : {}),
-    ...('armour' in entity
-      ? {
-          armour: meter(entity.armour, 60, 'Armour'),
-          hull: meter(entity.hull, 120, 'Hull'),
-        }
-      : {}),
-    ...('market' in entity ? { trade: tradeSummary(ship, entity) } : {}),
-    ...('market' in entity && (entity.defence?.hull ?? 0) > 0
-      ? { defence: meter(entity.defence!.hull, 100, 'Orbital battery') }
-      : {}),
-    ...('material' in entity
-      ? {
-          deposit: meter(
-            entity.remaining,
-            entity.capacity ?? entity.remaining,
-            `${entity.material} remaining`,
-            entity.remaining === 0,
-          ),
-        }
-      : {}),
-    // Actions are rendered once, in the context bar; repeating them on the
-    // target card gave every planet two identical Dock/Autopilot/Bomb rows.
-    actions: [],
-  };
-}
-
 function galaxyCells(state: GameState, ship: Ship): GalaxyCell[] {
+  const filters = uiState.galaxy.filters;
   const playerX = sectorOf(ship.position.x),
     playerY = sectorOf(ship.position.y);
   const cells: GalaxyCell[] = [];
@@ -1236,17 +1192,23 @@ function galaxyCells(state: GameState, ship: Ship): GalaxyCell[] {
         x,
         y,
         discovered,
-        danger: dangerAt(state, x, y),
-        ...(planet && discovered
-          ? {
-              planet: planet.name,
-              owner: relation(planet.owner),
-              ...(planet.owner === 'player' || planet.owner === null
-                ? { trade: `Sells here · ${planet.market.prices.ore}c ore` }
-                : {}),
-            }
+        // Undiscovered space reveals nothing, and each filter governs its own
+        // layer, but a market you already know about stays worth marking.
+        ...(discovered ? { danger: dangerAt(state, x, y) } : {}),
+        ...(planet && discovered && filters.planets
+          ? { planet: planet.name }
+          : {}),
+        ...(planet &&
+        discovered &&
+        filters.trade &&
+        (planet.owner === 'player' || planet.owner === null)
+          ? { trade: `Sells here · ${planet.market.prices.ore}c ore` }
+          : {}),
+        ...(planet && discovered && filters.factions
+          ? { owner: relation(planet.owner) }
           : {}),
         ...(discovered &&
+        filters.resources &&
         state.nodes.some(
           (node) =>
             node.sectorX === x && node.sectorY === y && node.remaining > 0,
@@ -1254,12 +1216,14 @@ function galaxyCells(state: GameState, ship: Ship): GalaxyCell[] {
           ? { resources: true }
           : {}),
         ...(discovered &&
+        filters.hazards &&
         state.hazards.some(
           (hazard) => hazard.sectorX === x && hazard.sectorY === y,
         )
           ? { hazard: 'Asteroid field' }
           : {}),
         ...(discovered &&
+        filters.discoveries &&
         state.discoveries.some(
           (item) => item.sectorX === x && item.sectorY === y && !item.claimed,
         )
@@ -1290,88 +1254,43 @@ function routeForecast(
       state.width,
       state.height,
     ) / SCALE;
+  const dx = wrappedDelta(
+    ship.position.x,
+    destinationPoint.x,
+    state.width * SECTOR_SIZE * SCALE,
+  );
+  const dy = wrappedDelta(
+    ship.position.y,
+    destinationPoint.y,
+    state.height * SECTOR_SIZE * SCALE,
+  );
+  const crossings =
+    Number(Math.abs(destinationPoint.x - ship.position.x - dx) > SCALE) +
+    Number(Math.abs(destinationPoint.y - ship.position.y - dy) > SCALE);
+  const estimatedFuel =
+    Math.ceil(
+      ((distance / 180) * (0.018 + 0.0000018 * 180 ** 2) + 0.12) * 1.05 * 10,
+    ) / 10;
   return {
     destination: `Sector ${x + 1},${y + 1}`,
-    wrappedDistance: Math.round(distance),
-    crossings: 0,
-    estimatedFuel: Math.ceil(distance / 900),
-    remainingFuel: ship.fuelHundredths / 100,
-    reserveImpact: 'Emergency drift remains available',
+    wrappedDistance: Math.round((distance / SECTOR_SIZE) * 100) / 100,
+    crossings,
+    estimatedFuel,
+    remainingFuel: Math.max(0, ship.fuelHundredths / 100 - estimatedFuel),
+    reserveImpact:
+      estimatedFuel > ship.fuelHundredths / 100
+        ? 'Needs emergency drift — weapons and mining offline'
+        : 'Normal fuel · direct-route cruise estimate',
     highestDanger: dangerAt(state, x, y),
-    knownHazards: state.hazards.some(
-      (hazard) => hazard.sectorX === x && hazard.sectorY === y,
-    )
-      ? ['Asteroid field']
-      : [],
+    knownHazards:
+      visited.has(`${x},${y}`) &&
+      state.hazards.some(
+        (hazard) => hazard.sectorX === x && hazard.sectorY === y,
+      )
+        ? ['Asteroid field']
+        : [],
     intel: visited.has(`${x},${y}`) ? 'LIVE' : 'UNKNOWN',
     unknownConditions: !visited.has(`${x},${y}`),
-  };
-}
-
-function objectiveFor(state: GameState): string {
-  const ship = playerShip(state);
-  if (!state.launched) return 'Launch from Hearthlight';
-  if (state.stats.discoveries === 0)
-    return 'Explore a new sector and investigate a signal';
-  if (state.planets.filter((planet) => planet.owner === 'player').length === 1)
-    return 'Build influence or conquer a neutral planet';
-  return 'Control every planet in the galaxy';
-}
-
-function dangerAt(state: GameState, x: number, y: number): DangerBand {
-  const home = state.planets.find((planet) => planet.acquisition === 'home')!;
-  const dx = Math.min(
-    Math.abs(x - home.sectorX),
-    state.width - Math.abs(x - home.sectorX),
-  );
-  const dy = Math.min(
-    Math.abs(y - home.sectorY),
-    state.height - Math.abs(y - home.sectorY),
-  );
-  const ratio = (dx + dy) / ((state.width + state.height) / 2);
-  return ratio < 0.15
-    ? 'Haven'
-    : ratio < 0.3
-      ? 'Near Reach'
-      : ratio < 0.5
-        ? 'Far Reach'
-        : ratio < 0.7
-          ? 'Verge'
-          : 'Antipode';
-}
-
-function recordFromState(state: GameState): CampaignRecord {
-  return {
-    id: state.campaignId,
-    title: 'Venture Star',
-    outcome: state.outcome === 'victory' ? 'Victory' : 'Defeat',
-    seed: state.seed,
-    startedAt: new Date(startedAt).toISOString(),
-    endedAt: new Date().toISOString(),
-    simulationDuration: formatTime(state.tick / TICKS_PER_SECOND),
-    engagedDuration: formatTime(state.tick / TICKS_PER_SECOND),
-    wallSpan: formatTime((Date.now() - startedAt) / 1000),
-    dimensions: `${state.width}×${state.height}`,
-    difficulty: state.difficulty,
-    planetsControlled: `${state.planets.filter((planet) => planet.owner === 'player').length}/${state.planets.length}`,
-    discoveries: state.stats.discoveries,
-    rulesVersion: state.rulesVersion,
-    finalMap: state.planets.map((planet) => ({
-      name: planet.name,
-      owner: planet.owner ?? 'neutral',
-      x: planet.sectorX,
-      y: planet.sectorY,
-    })),
-    finalTimeline: state.events.slice(-40).map((event) => ({
-      time: formatTime(event.tick / TICKS_PER_SECOND),
-      summary: event.summary,
-    })),
-    statistics: {
-      fuelUsed: Math.round(state.stats.fuelConsumedHundredths / 100),
-      distance: Math.round(state.stats.distanceMilli / SCALE),
-      tradeProfit: state.stats.tradeProfit,
-      shipsDestroyed: state.stats.shipsDestroyed,
-    },
   };
 }
 
@@ -1394,32 +1313,11 @@ function eventCategory(type: string): TimelineCategory {
   return 'Rivals';
 }
 
-function meter(current: number, max: number, label: string, critical = false) {
-  return {
-    current: Math.max(0, Math.round(current * 10) / 10),
-    max,
-    label,
-    ...(critical ? { critical: true } : {}),
-  };
-}
-function playerShip(state: GameState): Ship {
-  return state.ships.find((ship) => ship.id === state.playerShipId)!;
-}
-function sectorOf(position: number): number {
-  return Math.floor(position / SCALE / SECTOR_SIZE);
-}
 function normalizeTurn(value: number): number {
   return ((Math.round(value) % 65_536) + 65_536) % 65_536;
 }
 function signedHeadingDelta(from: number, to: number): number {
   return ((to - from + 98_304) % 65_536) - 32_768;
-}
-function relation(owner: string | null) {
-  return owner === 'player'
-    ? ('player' as const)
-    : owner
-      ? ('hostile' as const)
-      : ('neutral' as const);
 }
 function send(command: GameCommand): void {
   engine?.dispatch(command);
@@ -1431,38 +1329,6 @@ function flush(): void {
 }
 function findEntity(id: string) {
   return engine ? findEntityInState(engine.snapshot(), id) : null;
-}
-function findEntityInState(state: GameState, id: string) {
-  return (
-    state.planets.find((item) => item.id === id) ??
-    state.nodes.find((item) => item.id === id) ??
-    state.discoveries.find((item) => item.id === id) ??
-    state.ships.find((item) => item.id === id) ??
-    null
-  );
-}
-function bearing(
-  from: { x: number; y: number },
-  to: { x: number; y: number },
-  state: GameState,
-): string {
-  const angle =
-    (Math.atan2(
-      wrappedDelta(from.y, to.y, state.height * SECTOR_SIZE * SCALE),
-      wrappedDelta(from.x, to.x, state.width * SECTOR_SIZE * SCALE),
-    ) *
-      180) /
-    Math.PI;
-  return `${Math.round((angle + 360) % 360)}°`;
-}
-function formatTime(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(whole / 3600);
-  const minutes = Math.floor((whole % 3600) / 60);
-  const rest = whole % 60;
-  return hours
-    ? `${hours}h ${minutes}m`
-    : `${minutes}:${String(rest).padStart(2, '0')}`;
 }
 function randomSeed(): string {
   const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -1539,27 +1405,92 @@ function isUpgradeFamily(value: string | undefined): value is UpgradeFamily {
 function onVisibility(): void {
   if (document.hidden) {
     pauseSimulation();
+    if (destination === 'flight') overlay = 'pause';
     releaseLease();
+    render();
   }
 }
 function onKey(event: KeyboardEvent): void {
   const active = event.type === 'keydown';
-  if (
-    ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)
-  )
+  const typing =
+    event.target instanceof HTMLElement &&
+    (event.target.matches('input,select,textarea') ||
+      event.target.isContentEditable);
+  if (typing || !engine) return;
+  const key = event.key.toLowerCase();
+  const flight = destination === 'flight' && !overlay;
+  const binding = (
+    {
+      KeyW: 'thrust',
+      ArrowUp: 'thrust',
+      KeyA: 'left',
+      ArrowLeft: 'left',
+      KeyD: 'right',
+      ArrowRight: 'right',
+      KeyS: 'brake',
+      ArrowDown: 'brake',
+      KeyX: 'brake',
+    } as const
+  )[event.code as 'KeyW'];
+  if (binding && (flight || !active)) {
     event.preventDefault();
-  if (event.key === 'w' || event.key === 'ArrowUp') controls.thrust = active;
-  if (event.key === 'a' || event.key === 'ArrowLeft') controls.left = active;
-  if (event.key === 'd' || event.key === 'ArrowRight') controls.right = active;
-  if (event.key === 's' || event.key === 'ArrowDown') controls.brake = active;
+    controls[binding] = active;
+    if (active) interruptAutopilot('Manual control');
+  }
   if (active && (controls.thrust || controls.left || controls.right))
     allStop = false;
   if (!active || event.repeat) return;
-  if (event.key.toLowerCase() === 'x') dispatchUi({ type: 'all-stop' });
-  if (event.key === ' ')
+  if (key === 'x') {
+    dispatchUi({ type: 'all-stop' });
+    return;
+  }
+  if (key === 'escape') {
+    if (overlay) dispatchUi({ type: 'close-overlay' });
+    else if (destination === 'flight') dispatchUi({ type: 'pause' });
+    else if (destination === 'galaxy')
+      dispatchUi({ type: 'navigate', destination: 'flight' });
+    return;
+  }
+  if (overlay || destination === 'home' || destination === 'history') return;
+  if (key === ' ' && flight && event.target === space.canvas) {
+    event.preventDefault();
     dispatchUi(
       engine?.snapshot().running ? { type: 'pause' } : { type: 'resume' },
     );
-  if (event.key.toLowerCase() === 'm' || event.key.toLowerCase() === 'g')
-    dispatchUi({ type: 'navigate', destination: 'galaxy' });
+  }
+  if (key === 'p' && flight) dispatchUi({ type: 'pause' });
+  if (key === 'm' || key === 'g')
+    dispatchUi({
+      type: 'navigate',
+      destination: destination === 'galaxy' ? 'flight' : 'galaxy',
+    });
+  if (!flight) return;
+  if (key === 't') dispatchUi({ type: 'open-overlay', overlay: 'timeline' });
+  if (key === 'r' && selectedId) {
+    if (autopilot) interruptAutopilot('Route cancelled');
+    else setAutopilotTo(selectedId);
+    render();
+  }
+  if (key === 'h') {
+    send({
+      type: 'setHoldFire',
+      hold: !playerShip(engine.snapshot()).holdFire,
+    });
+    flush();
+    render();
+  }
+  if (key === 'e' && selectedId) {
+    const state = engine.snapshot();
+    const action = actionsFor(
+      state,
+      playerShip(state),
+      findEntityInState(state, selectedId),
+    ).find((item) => !item.disabledReason && !item.destructive);
+    if (action)
+      dispatchUi({
+        type: 'context-action',
+        actionId: action.id,
+        targetId: selectedId,
+      });
+  }
 }
