@@ -59,8 +59,8 @@ test("Galaxy map navigation is paused, wrap-aware, and starts a route through th
   const firstCell = page.locator('.vs-galaxy-cell[data-x="0"][data-y="0"]');
   await firstCell.click();
   await expect(page.getByRole("heading", { name: "Route forecast" })).toBeVisible();
-  await expect(page.getByText("Emergency drift remains available")).toBeVisible();
+  await expect(page.getByText("Normal fuel · direct-route cruise estimate")).toBeVisible();
   await page.getByRole("button", { name: "Start autopilot" }).click();
   await expect(page.getByRole("heading", { name: "Flight — Venture Star" })).toBeVisible();
-  await expect(page.getByText("Autopilot: sector 1,1")).toBeVisible();
+  await expect(page.getByText(/Travelling: Sector 1,1/)).toBeVisible();
 });

@@ -2,6 +2,8 @@
 
 Venture Star is an original, offline-first real-time space exploration and strategy game. Pilot one flagship across a procedurally generated toroidal galaxy, mine and trade resources, upgrade your vessel, discover frontier anomalies, acquire planets peacefully or by force, and defeat every rival faction without losing your irreplaceable ship.
 
+The current build contains the playable core, with maps through 30×30. The approved full specification is not yet complete: research, planet roles/development, advanced diplomacy, wormholes, the broader discovery pool, and full release verification remain outstanding. See the [feature audit](.omc/audits/2026-09-08-feature-audit.md) for the implemented/partial/missing comparison and the [canonical specification](.omc/specs/game-venture-star-spec.md) for the target.
+
 ## Play locally
 
 ```bash

@@ -271,7 +271,7 @@ describe('GameEngine command simulation', () => {
     ).toMatchObject({ accepted: false });
   });
 
-  it('makes severe procedural hazards capable of permanently destroying the flagship', () => {
+  it('T-M26-001: fast travel through asteroid fields can permanently destroy the flagship', () => {
     const state = createGame({ seed: SEED });
     const player = state.ships[0]!;
     const hazard = state.hazards[0] ?? {
@@ -284,14 +284,18 @@ describe('GameEngine command simulation', () => {
     };
     if (!state.hazards.length) state.hazards.push(hazard);
     hazard.position = { ...player.position };
+    hazard.radius = 20_000;
     player.dockedPlanetId = null;
+    player.velocity = { x: 220 * SCALE, y: 0 };
+    player.throttleBasisPoints = 10_000;
     player.shield = 0;
     player.armour = 0;
-    player.hull = 9;
+    player.hull = 8;
     state.running = true;
     state.launched = true;
     const engine = new GameEngine(state);
-    engine.stepTicks(21);
+    engine.dispatch({ type: 'flight', throttle: 1, turn: 0 });
+    engine.stepTicks(2_000);
     expect(engine.snapshot()).toMatchObject({
       outcome: 'defeat',
       running: false,

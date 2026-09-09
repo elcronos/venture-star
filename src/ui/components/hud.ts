@@ -40,7 +40,9 @@ function meter(
     ),
     el('span', {
       className: 'vs-meter__value',
-      text: `${formatNumber(state.current)}/${formatNumber(state.max)}`,
+      text: ['shield', 'armour', 'hull'].includes(iconName)
+        ? formatNumber(state.current)
+        : `${formatNumber(state.current)}/${formatNumber(state.max)}`,
     }),
   );
   if (critical)
@@ -127,8 +129,8 @@ function targetCard(
             target.armour ? meter(target.armour, 'armour') : null,
             target.hull ? meter(target.hull, 'hull') : null,
           ])
-        : el('p', { className: 'vs-muted', text: 'Health: Unknown' }),
-      el('div', { className: 'vs-action-row' }, actions),
+        : null,
+      el('div', { className: 'vs-action-row vs-target__actions' }, actions),
     ],
   );
 }
@@ -219,6 +221,11 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   throttle.addEventListener('input', () =>
     dispatch({ type: 'throttle', value: Number(throttle.value) }),
   );
+  const changeThrottle = (delta: number) => {
+    const value = Math.max(0, Math.min(100, Number(throttle.value) + delta));
+    throttle.value = String(value);
+    dispatch({ type: 'throttle', value });
+  };
   const joystick = el(
     'div',
     {
@@ -291,20 +298,12 @@ function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
         el('span', { className: 'vs-throttle__buttons' }, [
           button(
             'Decrease throttle',
-            () =>
-              dispatch({
-                type: 'throttle',
-                value: Math.max(0, flight.throttle - 25),
-              }),
+            () => changeThrottle(-25),
             { className: 'vs-button--compact' },
           ),
           button(
             'Increase throttle',
-            () =>
-              dispatch({
-                type: 'throttle',
-                value: Math.min(100, flight.throttle + 25),
-              }),
+            () => changeThrottle(25),
             { className: 'vs-button--compact' },
           ),
         ]),
@@ -323,7 +322,7 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
     { className: 'vs-hud', attrs: { 'aria-labelledby': 'flight-title' } },
     [
       el('h1', {
-        className: 'vs-flight-title',
+        className: 'vs-flight-title vs-sr-only',
         text: `Flight — ${flight.campaignName}`,
         attrs: { id: 'flight-title' },
       }),

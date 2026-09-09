@@ -14,6 +14,7 @@ export class VentureUi {
   private state: UiState;
   private invoker: HTMLElement | null = null;
   private previousOverlay: UiState['overlay'];
+  private overlaySignature = '';
 
   constructor(
     private readonly root: HTMLElement,
@@ -67,8 +68,9 @@ export class VentureUi {
       }
       return;
     }
-    if (event.key !== 'Escape') return;
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
     event.preventDefault();
+    event.stopPropagation();
     if (this.state.overlay) this.dispatch({ type: 'close-overlay' });
     else if (this.state.destination === 'flight')
       this.dispatch({ type: 'pause' });
@@ -80,6 +82,7 @@ export class VentureUi {
   };
 
   private render(): void {
+    const previousOverlay = this.previousOverlay;
     const openingOverlay = Boolean(this.state.overlay && !this.previousOverlay);
     const closingOverlay = Boolean(!this.state.overlay && this.previousOverlay);
     if (openingOverlay) {
@@ -94,6 +97,7 @@ export class VentureUi {
     this.root.dataset.reducedMotion = String(this.state.settings.reducedMotion);
     this.root.dataset.highContrast = String(this.state.settings.highContrast);
     this.root.dataset.touchControls = this.state.settings.touchControls;
+    this.root.dataset.textScale = String(this.state.settings.textScale);
     this.root.style.setProperty(
       '--vs-text-scale',
       `${this.state.settings.textScale}%`,
@@ -109,17 +113,85 @@ export class VentureUi {
             : this.state.destination === 'management'
               ? renderDock(this.state, this.dispatch)
               : renderHistory(this.state, this.dispatch);
-    this.layer.replaceChildren(screen);
-    const overlay = renderOverlay(this.state, this.dispatch);
-    this.overlayLayer.replaceChildren(...(overlay ? [overlay] : []));
+    const focusedLabel = this.layer.contains(document.activeElement)
+      ? document.activeElement?.getAttribute('aria-label')
+      : null;
+    const managementBody = this.layer.querySelector<HTMLElement>('.vs-management__body');
+    const managementScrollTop = this.state.destination === 'management' && managementBody
+      ? managementBody.scrollTop
+      : 0;
+    const focusedId = this.layer.contains(document.activeElement)
+      ? document.activeElement?.id || null
+      : null;
+    const currentHud = this.layer.querySelector('.vs-hud');
+    const controls = currentHud?.querySelector('.vs-touch-controls');
+    if (this.state.destination === 'flight' && currentHud && controls) {
+      // Keep captured pointers connected while refreshing status and actions.
+      for (const child of [...currentHud.children]) {
+        if (child !== controls) child.remove();
+      }
+      for (const child of [...screen.children]) {
+        if (!child.classList.contains('vs-touch-controls'))
+          currentHud.insertBefore(child, controls);
+      }
+      const throttle = controls.querySelector<HTMLInputElement>('input[type="range"]');
+      if (throttle && document.activeElement !== throttle)
+        throttle.value = String(this.state.flight.throttle);
+      const throttleLabel = controls.querySelector('.vs-throttle > span');
+      if (throttleLabel) throttleLabel.textContent = `Throttle ${this.state.flight.throttle}%`;
+    } else {
+      this.layer.replaceChildren(screen);
+      if (this.state.destination === 'management') {
+        const nextBody = screen.querySelector<HTMLElement>('.vs-management__body');
+        if (nextBody) nextBody.scrollTop = managementScrollTop;
+      }
+    }
+    if (focusedLabel && !this.layer.contains(document.activeElement)) {
+      const candidate = focusedId
+        ? document.getElementById(focusedId)
+        : [...this.layer.querySelectorAll<HTMLElement>('[aria-label]')]
+          .find((node) => node.getAttribute('aria-label') === focusedLabel);
+      candidate?.focus();
+    }
+    const signature = JSON.stringify([
+      this.state.overlay, this.state.settings, this.state.pauseReasons,
+      this.state.timelineFilter, this.state.timelineSearch,
+      this.state.overlay === 'timeline' ? this.state.flight.timeline : null,
+      this.state.selectedRecordId, this.state.records,
+    ]);
+    const overlayChanged = signature !== this.overlaySignature;
+    const focusedOverlay = this.overlayLayer.contains(document.activeElement)
+      ? document.activeElement as HTMLElement
+      : null;
+    const focusedIndex = focusedOverlay
+      ? [...this.overlayLayer.querySelectorAll('button, input, select, [tabindex]')].indexOf(focusedOverlay)
+      : -1;
+    const selection = focusedOverlay instanceof HTMLInputElement && ['text', 'search'].includes(focusedOverlay.type)
+      ? [focusedOverlay.selectionStart, focusedOverlay.selectionEnd] as const
+      : null;
+    if (overlayChanged) {
+      const nextOverlay = renderOverlay(this.state, this.dispatch);
+      this.overlayLayer.replaceChildren(...(nextOverlay ? [nextOverlay] : []));
+      this.overlaySignature = signature;
+    }
+    const overlay = this.overlayLayer.firstElementChild;
+    this.overlayLayer.querySelectorAll('.vs-save-state').forEach((node) => {
+      node.textContent = this.state.saveState;
+    });
     this.layer.toggleAttribute('inert', Boolean(overlay));
     this.layer.setAttribute('aria-hidden', overlay ? 'true' : 'false');
-    if (overlay)
-      requestAnimationFrame(() =>
-        overlay
-          .querySelector<HTMLElement>("[tabindex='-1'], button, input")
-          ?.focus(),
-      );
+    if (overlay && overlayChanged) {
+      const sameOverlay = previousOverlay === this.state.overlay;
+      const restore = sameOverlay && focusedIndex >= 0
+        ? overlay.querySelectorAll<HTMLElement>('button, input, select, [tabindex]')[focusedIndex]
+        : null;
+      if (restore) {
+        restore.focus();
+        if (selection && restore instanceof HTMLInputElement)
+          restore.setSelectionRange(selection[0], selection[1]);
+      } else if (!sameOverlay)
+        overlay.querySelector<HTMLElement>("[tabindex='-1'], button, input")?.focus();
+    }
     if (closingOverlay)
       requestAnimationFrame(() =>
         (this.invoker?.isConnected

@@ -102,6 +102,12 @@ export interface Ship {
   heading: number;
   throttleBasisPoints: number;
   fuelHundredths: number;
+  /** Fractional hundredth-FU retained across ticks and saves. */
+  fuelBurnRemainder?: number;
+  fuelDebt?: number;
+  rescueAtPlanet?: Record<string, number>;
+  invulnerableUntilTick?: number;
+  aiDestination?: Vec2;
   cargo: Record<Material, number>;
   credits: number;
   hull: number;
@@ -131,7 +137,11 @@ export interface Faction {
   relationToPlayer: 'peace' | 'hostile';
   nextPlanTick: number;
   collapseTicks: number;
-  reconstruction: null | { planetId: string; completeTick: number };
+  reconstruction: null | {
+    planetId: string;
+    completeTick: number;
+    unavailableSinceTick?: number;
+  };
 }
 
 export interface PendingBomb {

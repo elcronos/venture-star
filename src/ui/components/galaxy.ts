@@ -218,7 +218,6 @@ export function renderGalaxy(
     ['hazards', 'Hazards'],
     ['discoveries', 'Discoveries'],
     ['factions', 'Factions'],
-    ['trade', 'Trade intel'],
   ];
   return el(
     'section',

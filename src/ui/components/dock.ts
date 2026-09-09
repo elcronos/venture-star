@@ -130,7 +130,7 @@ function market(state: UiState, dispatch: UiDispatch): HTMLElement {
             attrs: { id: 'market-heading', tabindex: -1 },
           }),
           el('p', {
-            text: 'Fixed local quotes. Transactions commit atomically.',
+            text: 'Buy supplies for your next journey, or sell cargo to fund a refit. Prices are per unit.',
           }),
         ]),
         el('span', {
@@ -278,7 +278,7 @@ function marketRow(
       },
       [
         button(
-          `Buy ${quantity}`,
+          `Buy ${quantity} · ${quantity * row.buyPrice} cr`,
           () =>
             dispatch({
               type: 'market-trade',
@@ -289,7 +289,7 @@ function marketRow(
           { className: 'vs-button--compact', disabledReason: buyReason },
         ),
         button(
-          `Sell ${quantity}`,
+          `Sell ${quantity} · ${quantity * row.sellPrice} cr`,
           () =>
             dispatch({
               type: 'market-trade',
@@ -372,12 +372,12 @@ function shipyard(state: UiState, dispatch: UiDispatch): HTMLElement {
             attrs: { id: 'shipyard-heading', tabindex: -1 },
           }),
           el('p', {
-            text: 'Three generic slots. Review every resulting stat before fitting.',
+            text: 'Choose a system to improve. Review the full cost and resulting performance before fitting.',
           }),
         ]),
         el('span', {
           className: 'vs-chip',
-          text: `${state.dock.modules.filter((item) => item.installed).length}/3 slots`,
+          text: `${state.dock.modules.filter((item) => item.installed).length} upgraded systems`,
         }),
       ]),
       el(

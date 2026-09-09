@@ -28,6 +28,7 @@ interface VentureDatabase extends DBSchema {
 
 const DB_NAME = 'venture-star';
 const VERSION = 2;
+const terminalKey = (id: string) => `venture-star:terminal:${id}`;
 
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
@@ -80,12 +81,60 @@ export class VentureStore {
           });
   }
 
+  private locallySealed(id: string): boolean {
+    if (this.sealedIds.has(id)) return true;
+    try {
+      const marker = globalThis.localStorage?.getItem(terminalKey(id));
+      return marker !== null && marker !== undefined;
+    } catch {
+      return false;
+    }
+  }
+
+  private async terminal(id: string): Promise<boolean> {
+    if (this.locallySealed(id)) return true;
+    if (!this.database) return this.memoryRecords.has(id);
+    const db = await this.database;
+    const tx = db.transaction(['settings', 'records']);
+    const [fence, record] = await Promise.all([
+      tx.objectStore('settings').get(terminalKey(id)),
+      tx.objectStore('records').get(id),
+    ]);
+    await tx.done;
+    return Boolean(fence || record) || this.locallySealed(id);
+  }
+
+  private async writeCampaign(
+    id: string,
+    row: VentureDatabase['campaigns']['value'],
+    isCurrent: () => boolean,
+  ): Promise<void> {
+    if (this.locallySealed(id) || !isCurrent()) return;
+    if (!this.database) {
+      this.memoryCampaigns.set(row.id, structuredClone(row));
+      return;
+    }
+    const db = await this.database;
+    // Shared transaction scope serializes a stale writer against terminal sealing.
+    const tx = db.transaction(
+      ['campaigns', 'records', 'settings'],
+      'readwrite',
+    );
+    const [fence, record] = await Promise.all([
+      tx.objectStore('settings').get(terminalKey(id)),
+      tx.objectStore('records').get(id),
+    ]);
+    if (!fence && !record && !this.locallySealed(id) && isCurrent())
+      await tx.objectStore('campaigns').put(row);
+    await tx.done;
+  }
+
   async saveCampaign(
     id: string,
     state: unknown,
     isCurrent: () => boolean = () => true,
   ): Promise<void> {
-    if (this.sealedIds.has(id) || !isCurrent()) return;
+    if (this.locallySealed(id) || !isCurrent()) return;
     const row = {
       id,
       savedAt: Date.now(),
@@ -93,13 +142,7 @@ export class VentureStore {
       state,
       role: 'primary' as const,
     };
-    if (this.sealedIds.has(id) || !isCurrent()) return;
-    if (!this.database) {
-      this.memoryCampaigns.set(id, structuredClone(row));
-      return;
-    }
-    const db = await this.database;
-    await db.put('campaigns', row);
+    await this.writeCampaign(id, row, isCurrent);
   }
 
   async journalCampaign(
@@ -107,7 +150,7 @@ export class VentureStore {
     state: unknown,
     isCurrent: () => boolean = () => true,
   ): Promise<void> {
-    if (this.sealedIds.has(id) || !isCurrent()) return;
+    if (this.locallySealed(id) || !isCurrent()) return;
     const journalId = `${id}:journal`;
     const row = {
       id: journalId,
@@ -116,25 +159,27 @@ export class VentureStore {
       state,
       role: 'journal' as const,
     };
-    if (this.sealedIds.has(id) || !isCurrent()) return;
-    if (!this.database) {
-      this.memoryCampaigns.set(journalId, structuredClone(row));
-      return;
-    }
-    await (await this.database).put('campaigns', row);
+    await this.writeCampaign(id, row, isCurrent);
   }
 
   async loadCampaign<T>(id: string): Promise<T | null> {
+    if (await this.terminal(id)) return null;
     const row = this.database
       ? await (await this.database).get('campaigns', id)
       : this.memoryCampaigns.get(id);
-    if (row && (await checksum(row.state)) === row.checksum)
+    if (
+      row &&
+      (await checksum(row.state)) === row.checksum &&
+      !(await this.terminal(id))
+    )
       return structuredClone(row.state) as T;
     const journalId = `${id}:journal`;
     const journal = this.database
       ? await (await this.database).get('campaigns', journalId)
       : this.memoryCampaigns.get(journalId);
-    return journal && (await checksum(journal.state)) === journal.checksum
+    return journal &&
+      (await checksum(journal.state)) === journal.checksum &&
+      !(await this.terminal(id))
       ? (structuredClone(journal.state) as T)
       : null;
   }
@@ -179,25 +224,46 @@ export class VentureStore {
     state: unknown,
   ): Promise<void> {
     this.sealedIds.add(id);
+    // Synchronous tombstone closes the crash window before the first IDB await.
+    // It intentionally outlives the user-visible history record.
+    try {
+      globalThis.localStorage?.setItem(terminalKey(id), 'sealed');
+    } catch {
+      // IDB remains the durable authority when browser localStorage is unavailable.
+    }
     if (!this.database) {
-      this.memoryRecords.set(id, {
-        id,
-        sealedAt: Date.now(),
-        outcome,
-        state: structuredClone(state),
-      });
+      if (
+        !this.memoryRecords.has(id) &&
+        !this.memorySettings.has(terminalKey(id))
+      )
+        this.memoryRecords.set(id, {
+          id,
+          sealedAt: Date.now(),
+          outcome,
+          state: structuredClone(state),
+        });
+      this.memorySettings.set(terminalKey(id), true);
       this.memoryCampaigns.delete(id);
       this.memoryCampaigns.delete(`${id}:journal`);
       return;
     }
     const db = await this.database;
-    const tx = db.transaction(['campaigns', 'records'], 'readwrite');
-    await tx.objectStore('records').put({
-      id,
-      sealedAt: Date.now(),
-      outcome,
-      state: structuredClone(state),
-    });
+    const tx = db.transaction(
+      ['campaigns', 'records', 'settings'],
+      'readwrite',
+    );
+    const [existing, fence] = await Promise.all([
+      tx.objectStore('records').get(id),
+      tx.objectStore('settings').get(terminalKey(id)),
+    ]);
+    if (!existing && !fence)
+      await tx.objectStore('records').add({
+        id,
+        sealedAt: Date.now(),
+        outcome,
+        state: structuredClone(state),
+      });
+    await tx.objectStore('settings').put(true, terminalKey(id));
     await tx.objectStore('campaigns').delete(id);
     await tx.objectStore('campaigns').delete(`${id}:journal`);
     await tx.done;
@@ -208,7 +274,12 @@ export class VentureStore {
       this.memoryRecords.delete(id);
       return;
     }
-    await (await this.database).delete('records', id);
+    const db = await this.database;
+    const tx = db.transaction(['records', 'settings'], 'readwrite');
+    if (await tx.objectStore('records').get(id))
+      await tx.objectStore('settings').put(true, terminalKey(id));
+    await tx.objectStore('records').delete(id);
+    await tx.done;
   }
 
   async records<T>(): Promise<

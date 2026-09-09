@@ -7,6 +7,7 @@ import type {
   Ship,
 } from '../game/types';
 import { SECTOR_SIZE, SCALE } from '../game/types';
+import { wrappedDelta, wrappedDistance } from '../game/math';
 
 const ASSETS = {
   player: new URL('../../assets/svg/ships/player/base.svg', import.meta.url)
@@ -69,6 +70,8 @@ const ASSETS = {
     '../../assets/svg/effects/range-lock-locked.svg',
     import.meta.url,
   ).href,
+  scan: new URL('../../assets/svg/effects/scan-normal.svg', import.meta.url)
+    .href,
 } as const;
 
 type AssetKey = keyof typeof ASSETS;
@@ -77,6 +80,7 @@ export interface SpaceCanvasOptions {
   onWorldTap?: (x: number, y: number) => void;
   onEntityTap?: (id: string) => void;
   reducedMotion?: () => boolean;
+  destination?: () => { x: number; y: number } | null;
 }
 
 interface Camera {
@@ -121,13 +125,16 @@ export class SpaceCanvas {
   }
 
   setState(state: GameState): void {
+    const fresh = this.state?.campaignId !== state.campaignId;
     this.state = state;
     const player = state.ships.find((ship) => ship.id === state.playerShipId);
-    if (player) {
-      const smoothing = this.options.reducedMotion?.() ? 1 : 0.13;
-      this.camera.x += (player.position.x / SCALE - this.camera.x) * smoothing;
-      this.camera.y += (player.position.y / SCALE - this.camera.y) * smoothing;
-    }
+    if (player && fresh)
+      this.camera = {
+        x: player.position.x / SCALE,
+        y: player.position.y / SCALE,
+        zoom: 0.72,
+      };
+    this.canvas.dataset.renderTick = String(state.tick);
     if (!this.raf) this.raf = requestAnimationFrame((time) => this.frame(time));
   }
 
@@ -164,11 +171,60 @@ export class SpaceCanvas {
 
   private frame(time: number): void {
     this.raf = 0;
+    this.followCamera(
+      Math.min(0.1, Math.max(0.001, (time - this.lastTime) / 1000)),
+    );
+    this.lastTime = time;
     this.draw(time);
     if (this.state?.running && this.state.outcome === 'active') {
-      this.lastTime = time;
       this.raf = requestAnimationFrame((next) => this.frame(next));
     }
+  }
+
+  private followCamera(dt: number): void {
+    if (!this.state) return;
+    const player = this.state.ships.find(
+      (ship) => ship.id === this.state!.playerShipId,
+    );
+    if (!player) return;
+    const smoothing = this.options.reducedMotion?.() ? 1 : 1 - 2 ** (-dt / 0.1);
+    this.camera.x +=
+      wrappedDelta(
+        this.camera.x,
+        player.position.x / SCALE,
+        this.state.width * SECTOR_SIZE,
+      ) * smoothing;
+    this.camera.y +=
+      wrappedDelta(
+        this.camera.y,
+        player.position.y / SCALE,
+        this.state.height * SECTOR_SIZE,
+      ) * smoothing;
+    this.canvas.dataset.cameraX = String(this.camera.x);
+    this.canvas.dataset.cameraY = String(this.camera.y);
+  }
+
+  private nearCamera(position: { x: number; y: number }): {
+    x: number;
+    y: number;
+  } {
+    if (!this.state) return { x: position.x / SCALE, y: position.y / SCALE };
+    return {
+      x:
+        this.camera.x +
+        wrappedDelta(
+          this.camera.x,
+          position.x / SCALE,
+          this.state.width * SECTOR_SIZE,
+        ),
+      y:
+        this.camera.y +
+        wrappedDelta(
+          this.camera.y,
+          position.y / SCALE,
+          this.state.height * SECTOR_SIZE,
+        ),
+    };
   }
 
   private draw(time: number): void {
@@ -180,7 +236,7 @@ export class SpaceCanvas {
     ctx.clearRect(0, 0, width, height);
     const background = ctx.createLinearGradient(0, 0, width, height);
     background.addColorStop(0, '#091426');
-    background.addColorStop(1, '#10233a');
+    background.addColorStop(1, '#10233B');
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, width, height);
     this.drawStars(width, height);
@@ -198,19 +254,25 @@ export class SpaceCanvas {
     const sectorY = player
       ? Math.floor(player.position.y / SCALE / SECTOR_SIZE)
       : 0;
-    const bodies = this.state.planets.filter(
-      (body) => body.sectorX === sectorX && body.sectorY === sectorY,
-    );
+    const visible = (body: { position: { x: number; y: number } }) =>
+      Boolean(
+        player &&
+        wrappedDistance(
+          player.position,
+          body.position,
+          this.state!.width,
+          this.state!.height,
+        ) <=
+          player.stats.sensorRange * 1.6 * SCALE,
+      );
+    const bodies = this.state.planets.filter(visible);
     const nodes = this.state.nodes.filter(
-      (body) => body.sectorX === sectorX && body.sectorY === sectorY,
+      (body) => visible(body) && body.remaining > 0,
     );
     const discoveries = this.state.discoveries.filter(
-      (body) =>
-        body.sectorX === sectorX && body.sectorY === sectorY && !body.claimed,
+      (body) => visible(body) && !body.claimed,
     );
-    const hazards = this.state.hazards.filter(
-      (body) => body.sectorX === sectorX && body.sectorY === sectorY,
-    );
+    const hazards = this.state.hazards.filter((body) => visible(body));
 
     ctx.translate(width / 2, height / 2);
     ctx.scale(this.camera.zoom, this.camera.zoom);
@@ -223,13 +285,10 @@ export class SpaceCanvas {
       this.drawDiscovery(ctx, discovery, time);
     for (const ship of this.state.ships) {
       if (ship.destroyed) continue;
-      if (
-        Math.floor(ship.position.x / SCALE / SECTOR_SIZE) !== sectorX ||
-        Math.floor(ship.position.y / SCALE / SECTOR_SIZE) !== sectorY
-      )
-        continue;
+      if (!visible(ship)) continue;
       this.drawShip(ctx, ship, ship.id === this.state.playerShipId);
     }
+    if (player) this.drawNavigation(ctx, player);
     ctx.restore();
   }
 
@@ -239,7 +298,7 @@ export class SpaceCanvas {
       const x = (index * 83 + 19) % width;
       const y = (index * 47 + 31) % height;
       const alpha = 0.18 + ((index * 17) % 50) / 100;
-      ctx.fillStyle = `rgba(216,234,242,${alpha})`;
+      ctx.fillStyle = `rgba(185,201,218,${alpha})`;
       ctx.fillRect(x, y, index % 9 === 0 ? 2 : 1, index % 9 === 0 ? 2 : 1);
     }
   }
@@ -249,12 +308,16 @@ export class SpaceCanvas {
     sectorX: number,
     sectorY: number,
   ): void {
-    const originX = sectorX * SECTOR_SIZE;
-    const originY = sectorY * SECTOR_SIZE;
+    const center = this.nearCamera({
+      x: (sectorX + 0.5) * SECTOR_SIZE * SCALE,
+      y: (sectorY + 0.5) * SECTOR_SIZE * SCALE,
+    });
+    const originX = center.x - SECTOR_SIZE / 2;
+    const originY = center.y - SECTOR_SIZE / 2;
     ctx.strokeStyle = 'rgba(45,182,163,0.14)';
     ctx.lineWidth = 1;
     ctx.strokeRect(originX, originY, SECTOR_SIZE, SECTOR_SIZE);
-    ctx.fillStyle = 'rgba(216,234,242,0.38)';
+    ctx.fillStyle = 'rgba(185,201,218,0.7)';
     ctx.font = '600 14px system-ui';
     ctx.fillText(
       `SECTOR ${sectorX + 1}.${sectorY + 1}`,
@@ -274,31 +337,34 @@ export class SpaceCanvas {
     const image = this.images.get(
       variants[this.hash(planet.id) % variants.length] ?? 'planetRocky',
     );
-    const x = planet.position.x / SCALE;
-    const y = planet.position.y / SCALE;
+    const { x, y } = this.nearCamera(planet.position);
     this.image(ctx, image, x, y, 150, 150);
     ctx.strokeStyle =
       planet.owner === 'player'
         ? '#2DB6A3'
         : planet.owner
-          ? '#EF6A5B'
-          : '#A9B8C6';
+          ? '#F5A623'
+          : '#A9B3C2';
+    ctx.setLineDash(
+      planet.owner === 'player' ? [] : planet.owner ? [10, 6] : [3, 9],
+    );
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(x, y, 82, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.setLineDash([]);
     this.label(ctx, planet.name, x, y + 106);
   }
 
   private drawNode(ctx: CanvasRenderingContext2D, node: ResourceNode): void {
     const key = node.material as AssetKey;
-    this.image(
+    const position = this.nearCamera(node.position);
+    this.image(ctx, this.images.get(key), position.x, position.y, 76, 76);
+    this.label(
       ctx,
-      this.images.get(key),
-      node.position.x / SCALE,
-      node.position.y / SCALE,
-      76,
-      76,
+      `${node.material.toUpperCase()} · ${node.remaining}`,
+      position.x,
+      position.y + 58,
     );
   }
 
@@ -312,22 +378,18 @@ export class SpaceCanvas {
       : 76 + Math.sin(time / 280) * 5;
     const key =
       item.kind === 'abandoned-cargo' ? 'discoveryCargo' : 'discoveryTreasure';
-    this.image(
-      ctx,
-      this.images.get(key),
-      item.position.x / SCALE,
-      item.position.y / SCALE,
-      size,
-      size,
-    );
+    const position = this.nearCamera(item.position);
+    this.image(ctx, this.images.get(key), position.x, position.y, size, size);
+    this.label(ctx, 'DISCOVERY', position.x, position.y + 60);
   }
 
   private drawHazard(ctx: CanvasRenderingContext2D, hazard: Hazard): void {
+    const position = this.nearCamera(hazard.position);
     this.image(
       ctx,
       this.images.get('hazard'),
-      hazard.position.x / SCALE,
-      hazard.position.y / SCALE,
+      position.x,
+      position.y,
       190,
       190,
       0.72,
@@ -349,8 +411,7 @@ export class SpaceCanvas {
       : moving
         ? 'rivalThrust'
         : 'rival';
-    const x = ship.position.x / SCALE;
-    const y = ship.position.y / SCALE;
+    const { x, y } = this.nearCamera(ship.position);
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate((ship.heading / 65536) * Math.PI * 2 + Math.PI / 2);
@@ -363,8 +424,81 @@ export class SpaceCanvas {
       player ? 82 : 72,
     );
     ctx.restore();
-    if (ship.selectedTargetId)
-      this.image(ctx, this.images.get('lock'), x, y, 110, 110);
+  }
+
+  private drawNavigation(ctx: CanvasRenderingContext2D, player: Ship): void {
+    if (!this.state) return;
+    const position = this.nearCamera(player.position);
+    const pulse = this.state.events.findLast(
+      (event) => event.type === 'SCAN_PULSE',
+    );
+    if (pulse && this.state.tick - pulse.tick < 20) {
+      const size = this.options.reducedMotion?.()
+        ? 200
+        : 120 + (this.state.tick - pulse.tick) * 20;
+      this.image(
+        ctx,
+        this.images.get('scan'),
+        position.x,
+        position.y,
+        size,
+        size,
+        0.65,
+      );
+    }
+    const target = [
+      ...this.state.planets,
+      ...this.state.nodes,
+      ...this.state.discoveries,
+      ...this.state.ships,
+    ].find((entity) => entity.id === player.selectedTargetId);
+    if (target) {
+      const point = this.nearCamera(target.position);
+      this.image(
+        ctx,
+        this.images.get('lock'),
+        point.x,
+        point.y,
+        'market' in target ? 196 : 110,
+        'market' in target ? 196 : 110,
+      );
+    }
+    const destination = this.options.destination?.();
+    if (destination) {
+      const point = this.nearCamera(destination);
+      ctx.strokeStyle = '#2DB6A3';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([9, 8]);
+      ctx.beginPath();
+      ctx.moveTo(position.x, position.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    const node = this.state.nodes.find(
+      (item) => item.id === player.miningNodeId,
+    );
+    if (node) {
+      const point = this.nearCamera(node.position);
+      const ready = this.state.tick >= (player.miningReadyTick ?? 0);
+      ctx.strokeStyle = ready ? '#F5A623' : '#2DB6A3';
+      ctx.lineWidth = 2 + (player.upgrades.drill ?? 0);
+      ctx.setLineDash(ready ? [6, 5] : [2, 8]);
+      ctx.lineDashOffset = this.options.reducedMotion?.()
+        ? 0
+        : -this.state.tick % 20;
+      ctx.beginPath();
+      ctx.moveTo(position.x, position.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      this.label(
+        ctx,
+        ready ? 'MINING' : 'ACQUIRING LOCK',
+        position.x,
+        position.y + 72,
+      );
+    }
   }
 
   private image(
@@ -391,7 +525,7 @@ export class SpaceCanvas {
   ): void {
     ctx.font = '700 16px system-ui';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#D8EAF2';
+    ctx.fillStyle = '#F4F1E8';
     ctx.strokeStyle = '#091426';
     ctx.lineWidth = 5;
     ctx.strokeText(text, x, y);
@@ -415,15 +549,36 @@ export class SpaceCanvas {
           (item) => !item.destroyed && item.id !== this.state?.playerShipId,
         ),
       ];
+      const player = this.state.ships.find(
+        (ship) => ship.id === this.state!.playerShipId,
+      )!;
       const nearest = entities
+        .filter(
+          (entity) =>
+            wrappedDistance(
+              player.position,
+              entity.position,
+              this.state!.width,
+              this.state!.height,
+            ) <=
+            player.stats.sensorRange * 1.6 * SCALE,
+        )
         .map((entity) => ({
           entity,
           distance: Math.hypot(
-            entity.position.x / SCALE - x,
-            entity.position.y / SCALE - y,
+            wrappedDelta(
+              x,
+              entity.position.x / SCALE,
+              this.state!.width * SECTOR_SIZE,
+            ),
+            wrappedDelta(
+              y,
+              entity.position.y / SCALE,
+              this.state!.height * SECTOR_SIZE,
+            ),
           ),
         }))
-        .filter((candidate) => candidate.distance <= 72 / this.camera.zoom)
+        .filter((candidate) => candidate.distance <= 44 / this.camera.zoom)
         .sort(
           (a, b) =>
             a.distance - b.distance || a.entity.id.localeCompare(b.entity.id),
