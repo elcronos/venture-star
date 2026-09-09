@@ -78,6 +78,10 @@ let autopilot: {
   entityId?: string;
   startedTick: number;
 } | null = null;
+// Keeps the final braking command alive for one fixed-step after the route
+// clears. Without this, the ship resumes coasting as soon as it reports
+// arrival and can drift into an orbit around the clicked destination.
+let arrivalBrake = false;
 let flightMessage = '';
 let galaxyZoom = 1;
 let selectedModuleId: string | undefined;
@@ -208,6 +212,12 @@ function applyFlightIntent(state: GameState): void {
   let turn: -1 | 0 | 1 = controls.left ? -1 : controls.right ? 1 : 0;
   let throttle = controls.thrust ? 1 : controls.throttle;
   let brake = controls.brake;
+  if (!autopilot && arrivalBrake) {
+    throttle = 0;
+    brake = true;
+    if (Math.hypot(ship.velocity.x, ship.velocity.y) / SCALE <= 2)
+      arrivalBrake = false;
+  }
   if (autopilot) {
     const target = autopilot.entityId
       ? findEntityInState(state, autopilot.entityId)
@@ -236,9 +246,11 @@ function applyFlightIntent(state: GameState): void {
     const distance = Math.hypot(dx, dy) / SCALE;
     const speed = Math.hypot(ship.velocity.x, ship.velocity.y) / SCALE;
     const arrival = target ? 78 : 20;
-    if (distance <= arrival && speed <= 2) {
+    const arrivalRadius = arrival + 8;
+    if (distance <= arrivalRadius && speed <= 2) {
       flightMessage = `Arrived: ${autopilot.label}`;
       autopilot = null;
+      arrivalBrake = true;
       controls.throttle = 0;
       throttle = 0;
       brake = true;
@@ -248,7 +260,10 @@ function applyFlightIntent(state: GameState): void {
       );
       const error = signedHeadingDelta(ship.heading, desired);
       turn = Math.abs(error) < 350 ? 0 : error < 0 ? -1 : 1;
-      brake = distance <= (speed * speed) / 300 + arrival - 8;
+      // Start braking before the interaction radius, with a small wrapped
+      // world safety margin. The previous late-braking threshold overshot
+      // clicked coordinates and caused the ship to circle them.
+      brake = distance <= (speed * speed) / 300 + arrival + 8;
       throttle =
         brake || Math.abs(error) > 1400
           ? 0
@@ -277,11 +292,13 @@ function clearFlightInputs(): void {
     brake: false,
     throttle: 0,
   };
+  arrivalBrake = false;
 }
 
 function interruptAutopilot(reason: string): void {
   if (autopilot) flightMessage = `Interrupted: ${reason}`;
   autopilot = null;
+  arrivalBrake = false;
   controls.throttle = 0;
 }
 
@@ -495,6 +512,7 @@ function createCampaign(config?: CampaignSetup): void {
   selectedId = null;
   selectedCell = null;
   autopilot = null;
+  arrivalBrake = false;
   flightMessage = '';
   clearFlightInputs();
   sealed = false;

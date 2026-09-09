@@ -107,7 +107,7 @@ test('T-M06-005: displayed autopilot arrives stopped at opening ore and mining w
             Math.hypot(
               ship.position.x - node.position.x,
               ship.position.y - node.position.y,
-            ) <= 84_000 && Math.hypot(ship.velocity.x, ship.velocity.y) <= 2_000
+            ) <= 96_000 && Math.hypot(ship.velocity.x, ship.velocity.y) <= 2_000
           );
         }, ore),
       { timeout: 20_000 },
