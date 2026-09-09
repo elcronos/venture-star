@@ -54,11 +54,13 @@ test("Galaxy map navigation is paused, wrap-aware, and starts a route through th
 
   await expect(page.getByRole("heading", { name: "Galaxy" })).toBeVisible();
   await expect(page.getByRole("grid", { name: "Galaxy map, 10 by 10 sectors" })).toBeVisible();
+  await page.screenshot({ path: `test-results/galaxy-${test.info().project.name}.png`, fullPage: true });
   expect(await page.evaluate(() => window.__GAME__!.state!.running)).toBe(false);
 
   const firstCell = page.locator('.vs-galaxy-cell[data-x="0"][data-y="0"]');
   await firstCell.click();
   await expect(page.getByRole("heading", { name: "Route forecast" })).toBeVisible();
+  await page.screenshot({ path: `test-results/galaxy-route-${test.info().project.name}.png`, fullPage: true });
   await expect(page.getByText("Normal fuel · direct-route cruise estimate")).toBeVisible();
   await page.getByRole("button", { name: "Start autopilot" }).click();
   await expect(page.getByRole("heading", { name: "Flight — Venture Star" })).toBeVisible();

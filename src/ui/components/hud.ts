@@ -373,6 +373,10 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
         attrs: { href: '#ship-status' },
       }),
       el('header', { className: 'vs-hud__top' }, [
+        el('div', { className: 'vs-hud__brand' }, [
+          el('strong', { text: 'VENTURE STAR' }),
+          el('span', { text: 'FRONTIER SURVEY' }),
+        ]),
         el('div', { className: 'vs-sector' }, [
           el('span', { className: 'vs-eyebrow', text: 'Sector' }),
           el('strong', { text: `${flight.sector.x},${flight.sector.y}` }),
