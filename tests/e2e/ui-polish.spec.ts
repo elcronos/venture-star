@@ -19,6 +19,7 @@ test('UX-T-060 live HUD updates preserve captured flight controls', async ({ pag
   test.skip(!testInfo.project.name.includes('mobile'), 'Touch pointer lifetime');
   await startCampaignFromHome(page);
   await page.getByRole('button', { name: 'Launch', exact: true }).first().click();
+  await expect(page.getByRole('region', { name: 'Local sector minimap' })).toBeVisible();
   const stick = page.getByRole('application', { name: 'Analog flight joystick' });
   const original = await stick.elementHandle();
   const bounds = await stick.boundingBox();

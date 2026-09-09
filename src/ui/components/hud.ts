@@ -187,6 +187,42 @@ function contacts(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   );
 }
 
+function minimap(flight: FlightState): HTMLElement {
+  const maxDistance = Math.max(240, ...flight.contacts.map((contact) => contact.distance));
+  const directionAngle: Record<string, number> = {
+    N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315,
+  };
+  const markers = flight.contacts.slice(0, 12).map((contact) => {
+    const angle = (directionAngle[contact.direction] ?? 0) * Math.PI / 180;
+    const radius = Math.min(42, 10 + (contact.distance / maxDistance) * 34);
+    const x = 50 + Math.sin(angle) * radius;
+    const y = 50 - Math.cos(angle) * radius;
+    return el('span', {
+      className: `vs-minimap__contact relation-${contact.relation}${contact.selected ? ' is-selected' : ''}`,
+      attrs: {
+        title: `${contact.name} · ${formatNumber(contact.distance, 1)} wu`,
+        'aria-label': `${contact.name}, ${contact.direction}, ${formatNumber(contact.distance, 1)} world units`,
+        style: `--map-x:${x}%;--map-y:${y}%;`,
+      },
+    });
+  });
+  return el('section', {
+    className: 'vs-minimap vs-panel',
+    attrs: { 'aria-label': 'Local sector minimap' },
+  }, [
+    el('div', { className: 'vs-minimap__heading' }, [
+      el('span', { className: 'vs-eyebrow', text: 'Local map' }),
+      el('strong', { text: `Sector ${flight.sector.x},${flight.sector.y}` }),
+    ]),
+    el('div', { className: 'vs-minimap__radar', attrs: { role: 'img', 'aria-label': `${flight.contacts.length} nearby contacts` } }, [
+      el('span', { className: 'vs-minimap__crosshair', attrs: { 'aria-hidden': 'true' } }),
+      el('span', { className: 'vs-minimap__ship', attrs: { 'aria-label': 'Venture Star position' } }),
+      ...markers,
+    ]),
+    el('span', { className: 'vs-minimap__legend', text: 'Center: Venture Star · dots: contacts' }),
+  ]);
+}
+
 function touchControls(flight: FlightState, dispatch: UiDispatch): HTMLElement {
   const hold = (control: 'thrust' | 'left' | 'right' | 'brake') => {
     const node = button(
@@ -501,6 +537,7 @@ export function renderHud(state: UiState, dispatch: UiDispatch): HTMLElement {
           ),
         ),
       ),
+      minimap(flight),
       touchControls(flight, dispatch),
       contacts(flight, dispatch),
     ],

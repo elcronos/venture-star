@@ -106,6 +106,18 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
 .vs-autopilot, .vs-lock { display: flex; align-items: center; gap: .5rem; margin: .6rem 0 0; color: var(--vs-player); }
 .vs-objective { position: fixed; z-index: 3; bottom: calc(var(--vs-safe-bottom) + 76px); left: 50%; display: flex; max-width: min(42rem, calc(100vw - 26rem)); align-items: center; gap: .8rem; padding: .65rem 1rem; transform: translateX(-50%); }
 .vs-objective strong { display: block; }
+.vs-minimap { position: fixed; z-index: 2; right: var(--vs-safe-right); bottom: calc(var(--vs-safe-bottom) + 5.5rem); display: grid; width: min(12rem, 22vw); gap: .35rem; padding: .65rem; }
+.vs-minimap__heading { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; font-size: .78rem; }
+.vs-minimap__heading .vs-eyebrow { margin: 0; font-size: .65rem; }
+.vs-minimap__radar { position: relative; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--vs-grid); border-radius: 50%; background: radial-gradient(circle, transparent 0 22%, rgb(101 218 198 / 8%) 23% 24%, transparent 25% 48%, rgb(101 218 198 / 8%) 49% 50%, transparent 51%), linear-gradient(90deg, transparent 49.5%, rgb(101 218 198 / 25%) 49.5% 50.5%, transparent 50.5%), linear-gradient(0deg, transparent 49.5%, rgb(101 218 198 / 25%) 49.5% 50.5%, transparent 50.5%); }
+.vs-minimap__crosshair { position: absolute; inset: 25%; border: 1px solid rgb(101 218 198 / 18%); border-radius: 50%; }
+.vs-minimap__ship, .vs-minimap__contact { position: absolute; top: var(--map-y, 50%); left: var(--map-x, 50%); width: .48rem; height: .48rem; border-radius: 50%; transform: translate(-50%, -50%); }
+.vs-minimap__ship { z-index: 1; width: .65rem; height: .65rem; border: 2px solid var(--vs-cream); background: var(--vs-player); box-shadow: 0 0 0 .2rem rgb(101 218 198 / 18%); }
+.vs-minimap__contact { border: 1px solid var(--vs-cream); background: var(--vs-text-secondary); }
+.vs-minimap__contact.relation-hostile, .vs-minimap__contact.relation-rival { background: var(--vs-coral); }
+.vs-minimap__contact.relation-player, .vs-minimap__contact.relation-friendly { background: var(--vs-player); }
+.vs-minimap__contact.is-selected { width: .7rem; height: .7rem; outline: 2px solid var(--vs-cream); outline-offset: 2px; }
+.vs-minimap__legend { color: var(--vs-text-secondary); font-size: .68rem; }
 .vs-context-actions { position: fixed; z-index: 3; bottom: var(--vs-safe-bottom); left: 50%; display: flex; gap: .5rem; transform: translateX(-50%); }
 .vs-sr-contacts { position: fixed; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .vs-sr-contacts:focus-within { z-index: 10; left: var(--vs-safe-left); bottom: var(--vs-safe-bottom); width: min(30rem, calc(100vw - 24px)); height: auto; max-height: 60vh; padding: 1rem; overflow: auto; background: var(--vs-space-800); }
@@ -210,6 +222,8 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
   .vs-status__data { display: none; } .vs-target__facts { grid-template-columns: 1fr; }
   .vs-target__facts div:nth-child(n+3), .vs-target__health { display: none; }
   .vs-objective { bottom: calc(var(--vs-safe-bottom) + 64px); width: calc(100vw - 24px); }
+  .vs-minimap { right: var(--vs-safe-right); bottom: calc(var(--vs-safe-bottom) + 11rem); width: 8.5rem; padding: .45rem; font-size: .8em; }
+  .vs-minimap__legend { display: none; }
   .vs-context-actions { right: var(--vs-safe-right); bottom: var(--vs-safe-bottom); left: auto; transform: none; }
   .vs-context-actions .vs-button span { max-width: 7rem; }
   .vs-critical-banner { top: calc(var(--vs-safe-top) + 62px); }
@@ -351,6 +365,8 @@ h1, h2, h3 { line-height: 1.12; letter-spacing: .015em; }
   .vs-objective { top: auto; bottom: 76px; left: 50%; max-width: calc(100vw - 390px); width: auto; white-space: normal; font-size: .75em; padding: .4rem; }
   .vs-objective > .vs-icon { display: none; }
   .vs-objective { display: block; }
+  .vs-minimap { right: 12px; bottom: 82px; width: 7.5rem; padding: .35rem; font-size: .72em; }
+  .vs-minimap__legend { display: none; }
   .vs-objective > span { display: block; font-size: .85em; margin-top: .2rem; }
   .vs-touch-controls, [data-touch-controls="on"] .vs-touch-controls { bottom: 12px; }
   .vs-joystick, [data-touch-controls="on"] .vs-joystick { width: 80px; height: 80px; }
