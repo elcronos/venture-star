@@ -214,8 +214,8 @@ function minimap(flight: FlightState): HTMLElement {
       el('span', { className: 'vs-eyebrow', text: 'Local map' }),
       el('strong', { text: `Sector ${flight.sector.x},${flight.sector.y}` }),
     ]),
-    el('div', { className: 'vs-minimap__radar', attrs: { role: 'img', 'aria-label': `${flight.contacts.length} nearby contacts` } }, [
-      el('span', { className: 'vs-minimap__crosshair', attrs: { 'aria-hidden': 'true' } }),
+    el('div', { className: 'vs-minimap__grid', attrs: { role: 'img', 'aria-label': `${flight.contacts.length} nearby contacts` } }, [
+      el('span', { className: 'vs-minimap__grid-center', attrs: { 'aria-hidden': 'true' } }),
       el('span', { className: 'vs-minimap__ship', attrs: { 'aria-label': 'Venture Star position' } }),
       ...markers,
     ]),
